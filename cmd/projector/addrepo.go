@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -109,6 +110,10 @@ func newAddRepoCmd() *cobra.Command {
 				}
 				repos, err = tui.SelectRepos(discovered, existingNamesList)
 				if err != nil {
+					if errors.Is(err, tui.ErrAborted) {
+						fmt.Println("Aborted.")
+						return nil
+					}
 					return fmt.Errorf("select repos: %w", err)
 				}
 			}

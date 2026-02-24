@@ -2,15 +2,20 @@
 package tui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/huh"
 
 	"github.com/kevdoran/projector/internal/config"
 	"github.com/kevdoran/projector/internal/repo"
 )
+
+// ErrAborted is returned when the user presses ESC to abort an interactive prompt.
+var ErrAborted = errors.New("aborted")
 
 // SelectRepos presents an interactive multi-select form for choosing repositories.
 // available is the full list of discovered repos; exclude contains repo names to omit.
@@ -38,18 +43,24 @@ func SelectRepos(available []repo.Repo, exclude []string) ([]repo.Repo, error) {
 		return nil, fmt.Errorf("no repositories available after applying exclusions")
 	}
 
+	km := huh.NewDefaultKeyMap()
+	km.Quit = key.NewBinding(key.WithKeys("ctrl+c", "esc"))
+
 	var selected []string
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Select repositories to include in this project").
-				Description("Use space to toggle, enter to confirm").
+				Description("Use space to toggle, enter to confirm, esc to abort").
 				Options(options...).
 				Value(&selected),
 		),
-	)
+	).WithKeyMap(km)
 
 	if err := form.Run(); err != nil {
+		if errors.Is(err, huh.ErrUserAborted) {
+			return nil, ErrAborted
+		}
 		return nil, fmt.Errorf("repo selection: %w", err)
 	}
 

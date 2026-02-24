@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -86,6 +87,10 @@ func newCreateCmd() *cobra.Command {
 				}
 				repos, err = tui.SelectRepos(discovered, nil)
 				if err != nil {
+					if errors.Is(err, tui.ErrAborted) {
+						fmt.Println("Aborted.")
+						return nil
+					}
 					return fmt.Errorf("select repos: %w", err)
 				}
 			}
