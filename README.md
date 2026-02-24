@@ -4,7 +4,14 @@
 
 pj is for managing parallel projects backed by git worktrees.
 
-Create a named project and `pj` automatically creates git worktrees in all your git repositories. The result is a clean, isolated, multi-repo project directory that can be used to lauch a new Cursor workspace or Claude Code session. No more manual `git worktree add/remove` bookkeeping or Cursor add/remove folders from workspace commands.
+Create a named project and `pj` automatically creates git worktrees in all your git repositories. The result is a clean, isolated, multi-repo project directory that can be used to lauch a new Cursor workspace or Claude Code session. 
+
+Stop thinking about:
+
+- ❌ Context switching (for you and your agents) using `git stash & git checkout main` or `git commit -a -m WIP && git checkout other-branch`
+- ❌ If I start a new agent to work on this bugfix, will it interfere with my current agent working on that big feature?
+
+You may have heard that git worktrees are a better solution for working with multiple coding agents in parallel. Maybe you are already using them, but find them tedious to manage. Maybe you are working in a system that uses mutliple git repositories, and a new task means having to create a worktree in every repo. If so, you may find `pj` a useful tool to abstract manual `git worktree add/remove` bookkeeping or Cursor add/remove folders from workspace commands behind a "projects" abstraction.
 
 ## User Guide
 
