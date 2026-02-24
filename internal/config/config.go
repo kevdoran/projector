@@ -31,7 +31,6 @@ var ErrConfigVersionTooNew = errors.New("config file was written by a newer vers
 type GlobalConfig struct {
 	ConfigVersion  int                   `toml:"config-version"`
 	ProjectsDir    string                `toml:"projects-dir"`
-	TemplateDir    string                `toml:"template-dir"`
 	RepoSearchDirs []string              `toml:"repo-search-dirs"`
 	Repos          map[string]RepoConfig `toml:"repos"`
 }

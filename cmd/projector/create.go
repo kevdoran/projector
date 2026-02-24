@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -22,7 +21,6 @@ func newCreateCmd() *cobra.Command {
 		fromProject   string
 		empty         bool
 		currentBranch bool
-		templateDir   string
 	)
 
 	cmd := &cobra.Command{
@@ -168,17 +166,6 @@ func newCreateCmd() *cobra.Command {
 				fmt.Printf("  created worktree: %s (branch: %s)\n", worktreePath, branchName)
 			}
 
-			// Copy template files if configured
-			tmplDir := templateDir
-			if tmplDir == "" {
-				tmplDir = cfg.TemplateDir
-			}
-			if tmplDir != "" {
-				if err := copyTemplate(tmplDir, projectDir); err != nil {
-					fmt.Fprintf(os.Stderr, "warning: template copy failed: %v\n", err)
-				}
-			}
-
 			// Write .projector.toml
 			projCfg := &project.ProjectConfig{
 				Project: project.ProjectMeta{
@@ -200,42 +187,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&fromProject, "from", "", "Copy repo list from an existing project")
 	cmd.Flags().BoolVar(&empty, "empty", false, "Create an empty project with no repos")
 	cmd.Flags().BoolVar(&currentBranch, "current-branch", false, "Use current branch of each repo as base")
-	cmd.Flags().StringVar(&templateDir, "template", "", "Directory to copy template files from")
 
 	return cmd
 }
 
-// copyTemplate recursively copies files from src to dst.
-func copyTemplate(src, dst string) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		target := filepath.Join(dst, rel)
-		if info.IsDir() {
-			return os.MkdirAll(target, info.Mode())
-		}
-		return copyFile(path, target, info.Mode())
-	})
-}
-
-func copyFile(src, dst string, mode os.FileMode) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	return err
-}

@@ -30,7 +30,6 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 
 	cfg := &config.GlobalConfig{
 		ProjectsDir:    "/tmp/projects",
-		TemplateDir:    "/tmp/templates",
 		RepoSearchDirs: []string{"/tmp/repos1", "/tmp/repos2"},
 		Repos: map[string]config.RepoConfig{
 			"my-repo": {DefaultBase: "origin/develop"},
@@ -48,9 +47,6 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 
 	if loaded.ProjectsDir != cfg.ProjectsDir {
 		t.Errorf("ProjectsDir: got %q, want %q", loaded.ProjectsDir, cfg.ProjectsDir)
-	}
-	if loaded.TemplateDir != cfg.TemplateDir {
-		t.Errorf("TemplateDir: got %q, want %q", loaded.TemplateDir, cfg.TemplateDir)
 	}
 	if len(loaded.RepoSearchDirs) != 2 {
 		t.Errorf("RepoSearchDirs len: got %d, want 2", len(loaded.RepoSearchDirs))

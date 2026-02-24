@@ -26,7 +26,7 @@ mv pj /usr/local/bin/pj
 On first run, `pj` will guide you through interactive setup to configure:
 
 - **Projects directory** — where project directories will be created (e.g. `~/projects`)
-- **Repository search directories** — directories to scan for git repositories (e.g. `~/dev/work,~/dev/personal`)
+- **Repository search directories** — directories to scan for git repositories (e.g. `~/repos/work,~/repos/personal`)
 
 Configuration is saved to `~/.projector/projector-config.toml`.
 
@@ -36,11 +36,10 @@ Configuration is saved to `~/.projector/projector-config.toml`.
 
 ```toml
 projects-dir = "/Users/alice/projects"
-template-dir = ""                       # optional: files copied to each new project
 
 repo-search-dirs = [
-  "/Users/alice/dev/work",
-  "/Users/alice/dev/personal"
+  "/Users/alice/repos/work",
+  "/Users/alice/repos/personal"
 ]
 
 # Optional: per-repository overrides
@@ -90,9 +89,6 @@ pj project create my-feature --empty
 
 # Use current branch of each repo as the base (instead of origin/main)
 pj project create my-feature --current-branch
-
-# Use a template directory
-pj project create my-feature --template /path/to/template
 ```
 
 **Branch naming**: `pj` tries `<project-name>` first, then `<project-name>-YYYY-MM-DD`, then `<project-name>-YYYY-MM-DD-1`, `-2`, etc.
