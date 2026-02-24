@@ -1,0 +1,36 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/kevdoran/projector/internal/project"
+)
+
+// resolveProject resolves a project from optional positional args or the current directory.
+// If args contains a project name, that name is used.
+// Otherwise the current working directory is walked upward to find a .projector.toml.
+func resolveProject(projectsDir string, args []string) (string, *project.ProjectConfig, error) {
+	var projectDir string
+
+	if len(args) > 0 {
+		projectDir = project.ProjectDir(projectsDir, args[0])
+	} else {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", nil, fmt.Errorf("get cwd: %w", err)
+		}
+		dir, err := project.FindProjectDir(cwd)
+		if err != nil {
+			return "", nil, fmt.Errorf("could not detect project from current directory: %w", err)
+		}
+		projectDir = dir
+	}
+
+	p, err := project.Load(projectDir)
+	if err != nil {
+		return "", nil, fmt.Errorf("load project at %s: %w", projectDir, err)
+	}
+
+	return projectDir, p, nil
+}

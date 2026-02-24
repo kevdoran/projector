@@ -1,0 +1,135 @@
+// Package config manages the global projector configuration file.
+package config
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/BurntSushi/toml"
+)
+
+// ErrNotFound is returned when the config file does not exist.
+var ErrNotFound = errors.New("config file not found")
+
+const (
+	configDirName  = ".projector"
+	configFileName = "projector-config.toml"
+)
+
+// GlobalConfig is the top-level structure for ~/.projector/projector-config.toml.
+type GlobalConfig struct {
+	ProjectsDir    string                `toml:"projects-dir"`
+	TemplateDir    string                `toml:"template-dir"`
+	RepoSearchDirs []string              `toml:"repo-search-dirs"`
+	Repos          map[string]RepoConfig `toml:"repos"`
+}
+
+// RepoConfig holds per-repository overrides stored under [repos.<name>].
+type RepoConfig struct {
+	DefaultBase string `toml:"default-base"`
+}
+
+// ConfigDir returns the path to the projector config directory (~/.projector).
+func ConfigDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("home dir: %w", err)
+	}
+	return filepath.Join(home, configDirName), nil
+}
+
+// configFilePath returns the full path to projector-config.toml.
+func configFilePath() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, configFileName), nil
+}
+
+// Load reads and parses the global config file.
+// Returns ErrNotFound if the file does not exist.
+func Load() (*GlobalConfig, error) {
+	path, err := configFilePath()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, ErrNotFound
+	}
+
+	cfg := &GlobalConfig{}
+	if _, err := toml.DecodeFile(path, cfg); err != nil {
+		return nil, fmt.Errorf("parse config %s: %w", path, err)
+	}
+	return cfg, nil
+}
+
+// Save writes the config to disk, creating the config directory if needed.
+func Save(cfg *GlobalConfig) error {
+	path, err := configFilePath()
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create config file: %w", err)
+	}
+	defer f.Close()
+
+	enc := toml.NewEncoder(f)
+	if err := enc.Encode(cfg); err != nil {
+		return fmt.Errorf("encode config: %w", err)
+	}
+	return nil
+}
+
+// ResolveBase determines the git base ref to use for a new worktree branch.
+// Priority: per-repo default-base override → origin/main → origin/master → HEAD.
+func ResolveBase(cfg *GlobalConfig, repoName, repoPath string) (string, error) {
+	// 1. Per-repo override
+	if repoCfg, ok := cfg.Repos[repoName]; ok && repoCfg.DefaultBase != "" {
+		return repoCfg.DefaultBase, nil
+	}
+
+	// 2. origin/main
+	if refExists(repoPath, "refs/remotes/origin/main") {
+		return "origin/main", nil
+	}
+
+	// 3. origin/master
+	if refExists(repoPath, "refs/remotes/origin/master") {
+		return "origin/master", nil
+	}
+
+	// 4. HEAD (current branch of the default clone)
+	return "HEAD", nil
+}
+
+// refExists checks whether the given git ref exists in repoPath.
+// Uses os/exec directly to avoid a circular import with the git package.
+func refExists(repoPath, ref string) bool {
+	cmd := exec.Command("git", "rev-parse", "--verify", ref)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	_ = out
+	return err == nil
+}
+
+// Validate checks the config for required fields and returns a human-readable error.
+func Validate(cfg *GlobalConfig) error {
+	if strings.TrimSpace(cfg.ProjectsDir) == "" {
+		return fmt.Errorf("projects-dir is required")
+	}
+	return nil
+}
