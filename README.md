@@ -1,17 +1,18 @@
-# pj
+# projector | pj
 
 [![CI](https://github.com/kevdoran/projector/actions/workflows/ci.yml/badge.svg)](https://github.com/kevdoran/projector/actions/workflows/ci.yml)
 
-pj is for managing parallel projects backed by git worktrees.
+Projector (`pj`) is for managing parallel projects backed by git worktrees.
 
-Create a named project and `pj` automatically creates git worktrees in all your git repositories. The result is a clean, isolated, multi-repo project directory that can be used to lauch a new Cursor workspace or Claude Code session. 
+Create a named project consisting of git worktrees from all the relevant git repositories. The result is a clean, isolated, multi-repo project directory from which you can launch a new Cursor workspace or Claude Code session.
 
 Stop thinking about:
 
 - ❌ Context switching (for you and your agents) using `git stash & git checkout main` or `git commit -a -m WIP && git checkout other-branch`
 - ❌ If I start a new agent to work on this bugfix, will it interfere with my current agent working on that big feature?
+- ❌ Manually doing Cursor `Add folder to workspace` operations or repetative `git worktree add/remove` bookkeeping
 
-You may have heard that git worktrees are a better solution for working with multiple coding agents in parallel. Maybe you are already using them, but find them tedious to manage. Maybe you are working in a system that uses mutliple git repositories, and a new task means having to create a worktree in every repo. If so, you may find `pj` a useful tool to abstract manual `git worktree add/remove` bookkeeping or Cursor add/remove folders from workspace commands behind a "projects" abstraction.
+You may have heard that git worktrees are a better solution for working with multiple coding agents in parallel. Maybe you are already using them, but find them tedious to manage, especially when working on a software system that spans mutliple git repositories, and a new parallel task means creating a new worktree in every repo. If so, you may find `pj` a useful tool to abstract "copies" (worktrees) of repositories behind a "project" concept.
 
 ## User Guide
 
