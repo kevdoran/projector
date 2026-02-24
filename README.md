@@ -141,8 +141,8 @@ If a branch no longer exists, a new branch is created with the standard naming s
 For two repos (`git-repo-1`, `git-repo-2`) and two projects (`foo`, `bar`):
 
 ```
-~/dev/work/git-repo-1           # original repo clones
-~/dev/work/git-repo-2
+~/repos/git-repo-1           # original repo clones
+~/repos/git-repo-2
 ~/projects/foo/
   .projector.toml               # project metadata
   git-repo-1+foo/               # git worktree (branch: foo)
