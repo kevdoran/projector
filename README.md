@@ -13,11 +13,13 @@ Create a named project and `pj` automatically creates git worktrees in all your 
 **From source** (requires Go 1.22+ and git 2.5+):
 
 ```bash
+brew install go  # if needed
+
 git clone https://github.com/kevdoran/projector.git
 cd projector
 go build -o pj ./cmd/projector
 
-# Move to a directory on your PATH, e.g.:
+# Move or copy to a directory on your PATH, e.g.:
 mv pj /usr/local/bin/pj
 ```
 
