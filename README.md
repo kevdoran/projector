@@ -1,8 +1,10 @@
-# projector
+# pj
 
-A CLI tool for managing parallel programming projects across multiple git repositories.
+[![CI](https://github.com/kevdoran/projector/actions/workflows/ci.yml/badge.svg)](https://github.com/kevdoran/projector/actions/workflows/ci.yml)
 
-`projector` abstracts git worktree management behind a "project" concept. Create a named project and `projector` automatically creates git worktrees in all your configured repositories — no more manual `git worktree add/remove` bookkeeping.
+pj is for managing parallel projects backed by git worktrees.
+
+Create a named project and `pj` automatically creates git worktrees in all your git repositories. The result is a clean, isolated, multi-repo project directory that can be used to lauch a new Cursor workspace or Claude Code session. No more manual `git worktree add/remove` bookkeeping or Cursor add/remove folders from workspace commands.
 
 ## User Guide
 
@@ -13,15 +15,15 @@ A CLI tool for managing parallel programming projects across multiple git reposi
 ```bash
 git clone https://github.com/kevdoran/projector.git
 cd projector
-go build -o projector ./cmd/projector
+go build -o pj ./cmd/projector
 
 # Move to a directory on your PATH, e.g.:
-mv projector /usr/local/bin/projector
+mv pj /usr/local/bin/pj
 ```
 
 ### First-time Setup
 
-On first run, `projector` will guide you through interactive setup to configure:
+On first run, `pj` will guide you through interactive setup to configure:
 
 - **Projects directory** — where project directories will be created (e.g. `~/projects`)
 - **Repository search directories** — directories to scan for git repositories (e.g. `~/dev/work,~/dev/personal`)
@@ -48,13 +50,13 @@ default-base = "origin/develop"
 
 ### Commands
 
-#### `projector list`
+#### `pj project list`
 
 List all projects.
 
 ```
-projector list
-projector list --verbose    # also shows repo names
+pj project list
+pj project list --verbose    # also shows repo names
 ```
 
 Example output:
@@ -68,70 +70,70 @@ old-work   archived  1 year ago    5
 
 Active projects are listed before archived projects; within each group, projects are sorted alphabetically.
 
-#### `projector create <name> [repos...]`
+#### `pj project create <name> [repos...]`
 
 Create a new project, setting up git worktrees in the specified repositories.
 
 ```bash
 # Interactive repo selection (multi-select prompt)
-projector create my-feature
+pj project create my-feature
 
 # Specify repos by name (discovered from search dirs) or absolute path
-projector create my-feature repo-a repo-b
-projector create my-feature /abs/path/to/some-repo
+pj project create my-feature repo-a repo-b
+pj project create my-feature /abs/path/to/some-repo
 
 # Copy repo list from an existing project
-projector create new-feature --from existing-feature
+pj project create new-feature --from existing-feature
 
 # Empty project (add repos later)
-projector create my-feature --empty
+pj project create my-feature --empty
 
 # Use current branch of each repo as the base (instead of origin/main)
-projector create my-feature --current-branch
+pj project create my-feature --current-branch
 
 # Use a template directory
-projector create my-feature --template /path/to/template
+pj project create my-feature --template /path/to/template
 ```
 
-**Branch naming**: `projector` tries `<project-name>` first, then `<project-name>-YYYY-MM-DD`, then `<project-name>-YYYY-MM-DD-1`, `-2`, etc.
+**Branch naming**: `pj` tries `<project-name>` first, then `<project-name>-YYYY-MM-DD`, then `<project-name>-YYYY-MM-DD-1`, `-2`, etc.
 
 **Branch base**: By default branches are created from `origin/main` → `origin/master` → `HEAD` (configurable per-repo via `[repos.<name>]` in the config file). Use `--current-branch` to branch from the repo's current HEAD instead.
 
 **Rollback**: If any worktree fails to be created, all previously created worktrees and the project directory are removed automatically.
 
-#### `projector add-repo [project] [repos...]`
+#### `pj project add-repo [repos...]`
 
 Add one or more repositories to an existing project.
 
 ```bash
 # From inside a project directory — interactive selection
-projector add-repo
-
-# Specify the project and repos
-projector add-repo my-feature new-repo
+pj project add-repo
 
 # From inside a project directory — specify repos
-projector add-repo new-repo /abs/path/to/another-repo
+pj project add-repo new-repo /abs/path/to/another-repo
+
+# Specify project explicitly (by name) and repos
+pj project add-repo my-feature new-repo
 ```
 
-#### `projector archive [project]`
+#### `pj project archive [project]`
 
 Archive an active project. Removes all git worktrees (reclaims disk space) while keeping the branches in each repository.
 
 ```bash
-projector archive               # detect project from current directory
-projector archive my-feature
+pj project archive               # detect project from current directory
+pj project archive my-feature
 ```
 
 The `.projector.toml` is updated to `status = "archived"` and the worktree state is saved for future restore. **Uncommitted changes in any worktree will prevent archiving.**
 
-#### `projector restore [project]`
+#### `pj project restore [project]`
 
 Restore an archived project by recreating all its git worktrees.
 
 ```bash
-projector restore               # detect project from current directory
-projector restore my-feature
+pj project restore               # detect project from current directory
+pj project restore my-feature
 ```
 
 If a branch no longer exists, a new branch is created with the standard naming strategy. Missing repositories are skipped with a warning.
@@ -165,7 +167,7 @@ For two repos (`git-repo-1`, `git-repo-2`) and two projects (`foo`, `bar`):
 ### Build
 
 ```bash
-go build -o projector ./cmd/projector
+go build -o pj ./cmd/projector
 ```
 
 ### Test
@@ -189,6 +191,7 @@ go mod tidy
 projector/
   cmd/projector/
     main.go          cobra root + subcommand wiring
+    projects.go      "projects" noun command
     list.go
     create.go
     addrepo.go

@@ -1,10 +1,10 @@
-# CLAUDE.md — Coding Agent Conventions for projector
+# CLAUDE.md — Coding Agent Conventions for pj
 
 ## Quick Reference
 
 ```bash
 # Build
-go build -o projector ./cmd/projector
+go build -o pj ./cmd/projector
 
 # Run tests (all packages)
 go test -v -race -count=1 ./...
@@ -23,7 +23,7 @@ go mod tidy
 
 | Package | Responsibility |
 |---|---|
-| `cmd/projector` | Cobra root + one file per subcommand (`list.go`, `create.go`, `addrepo.go`, `archive.go`, `restore.go`). No business logic — delegate to internal packages. |
+| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `addrepo.go`, `archive.go`, `restore.go`). No business logic — delegate to internal packages. |
 | `internal/config` | `GlobalConfig` struct, `Load`/`Save`/`ResolveBase`/`Validate`. TOML I/O for `~/.projector/projector-config.toml`. |
 | `internal/project` | `ProjectConfig` struct, `Load`/`Save`/`ListAll`/`FindProjectDir`/`ValidateName`/`DiscoverWorktrees`. TOML I/O for `<projects-dir>/<name>/.projector.toml`. |
 | `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `MinVersionCheck`. |

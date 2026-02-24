@@ -19,11 +19,8 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "projector",
-		Short: "Manage parallel projects across multiple git repositories",
-		Long: `projector abstracts git worktree management behind a "project" concept.
-Create named projects and projector automatically manages git worktrees
-across all your configured repositories.`,
+		Use:   "pj",
+		Short: "pj is for managing parallel projects backed by git worktrees",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Skip version check for help flags
 			if cmd.Name() == "help" {
@@ -33,13 +30,20 @@ across all your configured repositories.`,
 		},
 	}
 
-	root.AddCommand(
-		newListCmd(),
-		newCreateCmd(),
-		newAddRepoCmd(),
-		newArchiveCmd(),
-		newRestoreCmd(),
-	)
+	root.AddCommand(newProjectsCmd())
+
+	// Rename Cobra's default "completion" command to "autocomp".
+	// InitDefaultCompletionCmd adds it now so we can rename it before Execute()
+	// re-runs the same logic. DisableDefaultCmd=true prevents Execute() from
+	// adding a second "completion" command on top of the renamed one.
+	root.InitDefaultCompletionCmd()
+	for _, cmd := range root.Commands() {
+		if cmd.Name() == "completion" {
+			cmd.Use = "autocomp"
+			break
+		}
+	}
+	root.CompletionOptions.DisableDefaultCmd = true
 
 	return root
 }

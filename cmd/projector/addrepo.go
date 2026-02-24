@@ -18,7 +18,7 @@ import (
 
 func newAddRepoCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add-repo [project] [repos...]",
+		Use:   "add-repo [repos...]",
 		Short: "Add one or more repositories to a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadOrInitConfig()

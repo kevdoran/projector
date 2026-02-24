@@ -31,7 +31,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			if len(projects) == 0 {
-				fmt.Println("No projects found. Run 'projector create <name>' to create one.")
+				fmt.Println("No projects found. Run 'pj project create <name>' to create one.")
 				return nil
 			}
 

@@ -112,7 +112,7 @@ func newArchiveCmd() *cobra.Command {
 					for _, name := range rollbackFailed {
 						fmt.Fprintf(os.Stderr, "  - %s\n", name)
 					}
-					fmt.Fprintln(os.Stderr, "Run 'projector restore' to attempt recovery.")
+					fmt.Fprintln(os.Stderr, "Run 'pj project restore' to attempt recovery.")
 				}
 
 				return removeErr
