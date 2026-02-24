@@ -18,10 +18,18 @@ var ErrNotFound = errors.New("config file not found")
 const (
 	configDirName  = ".projector"
 	configFileName = "projector-config.toml"
+
+	// CurrentConfigVersion is the config schema version written by this binary.
+	// Increment when a migration is needed; Load will reject files with a higher version.
+	CurrentConfigVersion = 1
 )
+
+// ErrConfigVersionTooNew is returned when the config file was written by a newer version of projector.
+var ErrConfigVersionTooNew = errors.New("config file was written by a newer version of projector; please upgrade")
 
 // GlobalConfig is the top-level structure for ~/.projector/projector-config.toml.
 type GlobalConfig struct {
+	ConfigVersion  int                   `toml:"config-version"`
 	ProjectsDir    string                `toml:"projects-dir"`
 	TemplateDir    string                `toml:"template-dir"`
 	RepoSearchDirs []string              `toml:"repo-search-dirs"`
@@ -67,6 +75,10 @@ func Load() (*GlobalConfig, error) {
 	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
 	}
+	if cfg.ConfigVersion > CurrentConfigVersion {
+		return nil, fmt.Errorf("%w (file version %d, supported version %d)",
+			ErrConfigVersionTooNew, cfg.ConfigVersion, CurrentConfigVersion)
+	}
 	return cfg, nil
 }
 
@@ -87,6 +99,7 @@ func Save(cfg *GlobalConfig) error {
 	}
 	defer f.Close()
 
+	cfg.ConfigVersion = CurrentConfigVersion
 	enc := toml.NewEncoder(f)
 	if err := enc.Encode(cfg); err != nil {
 		return fmt.Errorf("encode config: %w", err)

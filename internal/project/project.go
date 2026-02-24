@@ -18,7 +18,15 @@ import (
 // ErrNotFound is returned when a project config file is not found.
 var ErrNotFound = errors.New("project config not found")
 
-const projectFileName = ".projector.toml"
+// ErrConfigVersionTooNew is returned when the project config was written by a newer version of projector.
+var ErrConfigVersionTooNew = errors.New("project config was written by a newer version of projector; please upgrade")
+
+const (
+	projectFileName = ".projector.toml"
+
+	// CurrentConfigVersion is the project config schema version written by this binary.
+	CurrentConfigVersion = 1
+)
 
 // Status represents the lifecycle state of a project.
 type Status string
@@ -31,6 +39,7 @@ const (
 
 // ProjectConfig is the structure of <project-dir>/.projector.toml.
 type ProjectConfig struct {
+	ConfigVersion     int              `toml:"config-version"`
 	Project           ProjectMeta      `toml:"project"`
 	ArchivedWorktrees []WorktreeRecord `toml:"archived-worktrees"`
 }
@@ -74,6 +83,10 @@ func Load(projectDir string) (*ProjectConfig, error) {
 	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return nil, fmt.Errorf("parse project config %s: %w", path, err)
 	}
+	if cfg.ConfigVersion > CurrentConfigVersion {
+		return nil, fmt.Errorf("%w (file version %d, supported version %d)",
+			ErrConfigVersionTooNew, cfg.ConfigVersion, CurrentConfigVersion)
+	}
 	return cfg, nil
 }
 
@@ -88,6 +101,7 @@ func Save(cfg *ProjectConfig, projectDir string) error {
 		return fmt.Errorf("create project file: %w", err)
 	}
 	defer f.Close()
+	cfg.ConfigVersion = CurrentConfigVersion
 	enc := toml.NewEncoder(f)
 	if err := enc.Encode(cfg); err != nil {
 		return fmt.Errorf("encode project config: %w", err)

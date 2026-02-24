@@ -58,6 +58,25 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 	if loaded.Repos["my-repo"].DefaultBase != "origin/develop" {
 		t.Errorf("Repos[my-repo].DefaultBase: got %q", loaded.Repos["my-repo"].DefaultBase)
 	}
+	if loaded.ConfigVersion != config.CurrentConfigVersion {
+		t.Errorf("ConfigVersion: got %d, want %d", loaded.ConfigVersion, config.CurrentConfigVersion)
+	}
+}
+
+func TestLoad_ErrConfigVersionTooNew(t *testing.T) {
+	home := withTempHome(t)
+	cfgDir := filepath.Join(home, ".projector")
+	if err := os.MkdirAll(cfgDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	content := "config-version = 9999\nprojects-dir = \"/tmp/projects\"\n"
+	if err := os.WriteFile(filepath.Join(cfgDir, "projector-config.toml"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := config.Load()
+	if !errors.Is(err, config.ErrConfigVersionTooNew) {
+		t.Fatalf("expected ErrConfigVersionTooNew, got %v", err)
+	}
 }
 
 func TestLoad_ParseError(t *testing.T) {

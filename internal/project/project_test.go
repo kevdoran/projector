@@ -63,6 +63,21 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 	if !loaded.Project.CreatedAt.Equal(now) {
 		t.Errorf("CreatedAt: got %v, want %v", loaded.Project.CreatedAt, now)
 	}
+	if loaded.ConfigVersion != project.CurrentConfigVersion {
+		t.Errorf("ConfigVersion: got %d, want %d", loaded.ConfigVersion, project.CurrentConfigVersion)
+	}
+}
+
+func TestLoad_ErrConfigVersionTooNew(t *testing.T) {
+	dir := t.TempDir()
+	content := "config-version = 9999\n\n[project]\nname = \"foo\"\nstatus = \"active\"\ncreated-at = 2026-01-01T00:00:00Z\n"
+	if err := os.WriteFile(filepath.Join(dir, ".projector.toml"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := project.Load(dir)
+	if !errors.Is(err, project.ErrConfigVersionTooNew) {
+		t.Fatalf("expected ErrConfigVersionTooNew, got %v", err)
+	}
 }
 
 func TestLoad_ErrNotFound(t *testing.T) {
