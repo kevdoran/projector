@@ -6,7 +6,7 @@ DATE    := $(shell date -u +%Y-%m-%d)
 LDFLAGS := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildDate=$(DATE)
 
 .DEFAULT_GOAL := build
-.PHONY: build install test vet tidy clean
+.PHONY: build install test vet tidy clean release-dry-run
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) $(MODULE)
@@ -26,3 +26,6 @@ tidy:
 
 clean:
 	rm -f $(BINARY)
+
+release-dry-run:
+	goreleaser release --snapshot --clean

@@ -18,15 +18,20 @@ You may have heard that git worktrees are a better solution for working with mul
 
 ### Installation
 
-**From source** (requires Go 1.22+ and git 2.5+):
+**Homebrew** (macOS and Linux):
 
 ```bash
-brew install go  # if needed
+brew install kevdoran/tap/pj
+```
 
+**Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH.
+
+**From source** (requires Go 1.25+ and git 2.5+):
+
+```bash
 git clone https://github.com/kevdoran/projector.git
 cd projector
-go build -o pj ./cmd/projector
-
+make build
 # Move or copy to a directory on your PATH, e.g.:
 mv pj /usr/local/bin/pj
 ```
@@ -298,7 +303,7 @@ For two repos (`git-repo-1`, `git-repo-2`) and two projects (`foo`, `bar`):
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.25 or later
 - git 2.5 or later (first worktree support)
 
 ### Build
