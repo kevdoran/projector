@@ -18,9 +18,9 @@ import (
 
 func newCreateCmd() *cobra.Command {
 	var (
-		fromProject   string
-		empty         bool
-		currentBranch bool
+		fromProject string
+		empty       bool
+		base        string
 	)
 
 	cmd := &cobra.Command{
@@ -115,35 +115,48 @@ func newCreateCmd() *cobra.Command {
 			}
 
 			for _, r := range repos {
-				// Determine base ref
-				var base string
-				if currentBranch && fromProject != "" {
-					// Use the branch from the source project's worktree for this repo
+				// Determine base ref for this repo.
+				var repoBase string
+				switch {
+				case base != "":
+					// Explicit --base: use it for every repo.
+					repoBase = base
+
+				case fromProject != "":
+					// --from with no --base: inherit the source project's worktree branch.
 					srcDir := project.ProjectDir(cfg.ProjectsDir, fromProject)
 					worktrees, err := project.DiscoverWorktrees(srcDir)
 					if err == nil {
 						for _, wt := range worktrees {
 							if wt.RepoName == r.Name {
-								base = wt.Branch
+								repoBase = wt.Branch
 								break
 							}
 						}
 					}
-					if base == "" {
-						base, _ = config.ResolveBase(cfg, r.Name, r.Path)
+					if repoBase == "" {
+						repoBase, _ = config.ResolveBase(cfg, r.Name, r.Path)
 					}
-				} else if currentBranch {
-					b, err := git.CurrentBranch(r.Path)
-					if err != nil {
-						rollback()
-						return fmt.Errorf("get current branch of %s: %w", r.Name, err)
-					}
-					base = b
-				} else {
-					base, err = config.ResolveBase(cfg, r.Name, r.Path)
+
+				default:
+					repoBase, err = config.ResolveBase(cfg, r.Name, r.Path)
 					if err != nil {
 						rollback()
 						return fmt.Errorf("resolve base for %s: %w", r.Name, err)
+					}
+				}
+
+				// Fetch before using a remote-tracking ref so it is up to date.
+				remote, err := git.RemoteForRef(r.Path, repoBase)
+				if err != nil {
+					rollback()
+					return fmt.Errorf("check remote for %s: %w", r.Name, err)
+				}
+				if remote != "" {
+					fmt.Printf("  fetching %s in %s…\n", remote, r.Name)
+					if err := git.Fetch(r.Path, remote); err != nil {
+						rollback()
+						return fmt.Errorf("fetch %s in %s: %w", remote, r.Name, err)
 					}
 				}
 
@@ -155,7 +168,7 @@ func newCreateCmd() *cobra.Command {
 				}
 
 				worktreePath := filepath.Join(projectDir, r.Name+"+"+name)
-				if err := git.WorktreeAdd(r.Path, worktreePath, base, branchName, true); err != nil {
+				if err := git.WorktreeAdd(r.Path, worktreePath, repoBase, branchName, true); err != nil {
 					rollback()
 					return fmt.Errorf("add worktree for %s: %w", r.Name, err)
 				}
@@ -186,7 +199,7 @@ func newCreateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&fromProject, "from", "", "Copy repo list from an existing project")
 	cmd.Flags().BoolVar(&empty, "empty", false, "Create an empty project with no repos")
-	cmd.Flags().BoolVar(&currentBranch, "current-branch", false, "Use current branch of each repo as base")
+	cmd.Flags().StringVar(&base, "base", "", "Git ref to branch from (branch, tag, SHA, or remote ref such as origin/main); remote refs are fetched automatically")
 
 	return cmd
 }

@@ -91,19 +91,24 @@ pj project create my-feature
 pj project create my-feature repo-a repo-b
 pj project create my-feature /abs/path/to/some-repo
 
-# Copy repo list from an existing project
+# Copy repo list from an existing project (inherits each repo's current branch as base)
 pj project create new-feature --from existing-feature
 
 # Empty project (add repos later)
 pj project create my-feature --empty
 
-# Use current branch of each repo as the base (instead of origin/main)
-pj project create my-feature --current-branch
+# Branch from a specific ref (branch, tag, SHA, or remote ref)
+pj project create my-feature --base origin/main
+pj project create my-feature --base my-other-branch
+pj project create my-feature --base v2.3.0
+pj project create my-feature --base HEAD
 ```
 
 **Branch naming**: `pj` tries `<project-name>` first, then `<project-name>-YYYY-MM-DD`, then `<project-name>-YYYY-MM-DD-1`, `-2`, etc.
 
-**Branch base**: By default branches are created from `origin/main` → `origin/master` → `HEAD` (configurable per-repo via `[repos.<name>]` in the config file). Use `--current-branch` to branch from the repo's current HEAD instead.
+**Branch base**: By default branches are created from `origin/main` → `HEAD` (configurable per-repo via `[repos.<name>]` in the config file). Use `--base <ref>` to specify any git ref explicitly. When `--from` is used without `--base`, each repo branches from the corresponding worktree branch of the source project.
+
+**Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically runs `git fetch` for that remote before creating the worktree, so the branch is always created from an up-to-date ref.
 
 **Rollback**: If any worktree fails to be created, all previously created worktrees and the project directory are removed automatically.
 
@@ -120,6 +125,48 @@ pj project add-repo new-repo /abs/path/to/another-repo
 
 # Specify project explicitly (by name) and repos
 pj project add-repo my-feature new-repo
+```
+
+#### `pj project desc [project]`
+
+Show details for a project. Resolves from the project name argument or the current directory.
+
+```bash
+pj project desc               # detect project from current directory
+pj project desc my-feature
+pj project desc my-feature -v  # verbose: full git status per worktree
+```
+
+Default output — a summary table with one row per worktree:
+
+```
+REPO            BRANCH          STATUS
+my-api          feature-x       clean
+my-frontend     feature-x       dirty (3)
+my-backend      feature-x-2024  clean
+```
+
+Verbose output (`-v`) — project header followed by a block per worktree, including full `git status --short` lines for dirty repos:
+
+```
+Project:  feature-x
+Path:     /Users/alice/projects/feature-x
+Status:   active
+Created:  2 days ago
+
+my-api  [feature-x]
+  path    /Users/alice/projects/feature-x/my-api+feature-x
+  status  clean
+
+my-frontend  [feature-x]  dirty
+  path    /Users/alice/projects/feature-x/my-frontend+feature-x
+  status  dirty
+     M  src/components/Button.tsx
+    ??  src/components/NewComponent.tsx
+
+my-backend  [feature-x-2024]
+  path    /Users/alice/projects/feature-x/my-backend+feature-x
+  status  clean
 ```
 
 #### `pj project archive [project]`
@@ -200,6 +247,7 @@ projector/
     projects.go      "projects" noun command
     list.go
     create.go
+    desc.go
     addrepo.go
     archive.go
     restore.go
@@ -224,7 +272,6 @@ projector/
 | `github.com/spf13/cobra` | CLI framework |
 | `github.com/BurntSushi/toml` | TOML parsing |
 | `github.com/charmbracelet/huh` | Interactive terminal forms |
-| `github.com/olekukonko/tablewriter` | Table output |
 
 ### Contributing
 

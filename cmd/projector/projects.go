@@ -10,6 +10,7 @@ func newProjectsCmd() *cobra.Command {
 	cmd.AddCommand(
 		newListCmd(),
 		newCreateCmd(),
+		newDescCmd(),
 		newAddRepoCmd(),
 		newArchiveCmd(),
 		newRestoreCmd(),

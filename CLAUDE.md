@@ -23,10 +23,10 @@ go mod tidy
 
 | Package | Responsibility |
 |---|---|
-| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `addrepo.go`, `archive.go`, `restore.go`). No business logic — delegate to internal packages. |
+| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `addrepo.go`, `archive.go`, `restore.go`). No business logic — delegate to internal packages. |
 | `internal/config` | `GlobalConfig` struct, `Load`/`Save`/`ResolveBase`/`Validate`. TOML I/O for `~/.projector/projector-config.toml`. |
 | `internal/project` | `ProjectConfig` struct, `Load`/`Save`/`ListAll`/`FindProjectDir`/`ValidateName`/`DiscoverWorktrees`. TOML I/O for `<projects-dir>/<name>/.projector.toml`. |
-| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `MinVersionCheck`. |
+| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `WorktreeList`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `Remotes`, `RemoteForRef`, `Fetch`, `MinVersionCheck`. |
 | `internal/repo` | `Repo` struct, `Discover` (non-recursive scan of search dirs), `ResolveRepos` (name or abs-path lookup). |
 | `internal/tui` | `SelectRepos` (huh multi-select), `InitConfig` (huh first-time setup form). |
 
@@ -78,6 +78,14 @@ Worktree directories are named `<repo-name>+<project-name>`, e.g. `my-repo+featu
 
 ### Dynamic Worktree Discovery
 Active project worktree state is **never stored in TOML** — it is discovered at runtime by reading `.git` files in project subdirectories. TOML only stores worktree state when a project is **archived**.
+
+## Definition of Done
+
+Every functional change to the CLI must include:
+- **Clean build** — `go build -o pj ./cmd/projector` and `go vet ./...` must pass with no errors
+- **Tests** — new or updated tests covering the changed behaviour; `go test -v -race -count=1 ./...` must pass
+- **README.md** — user-facing docs updated (commands, flags, output examples)
+- **CLAUDE.md** — package/function lists updated if packages or public functions changed
 
 ## Minimum Requirements
 - Go 1.22+

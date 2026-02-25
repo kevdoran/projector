@@ -119,12 +119,7 @@ func ResolveBase(cfg *GlobalConfig, repoName, repoPath string) (string, error) {
 		return "origin/main", nil
 	}
 
-	// 3. origin/master
-	if refExists(repoPath, "refs/remotes/origin/master") {
-		return "origin/master", nil
-	}
-
-	// 4. HEAD (current branch of the default clone)
+	// 3. HEAD (current branch of the default clone)
 	return "HEAD", nil
 }
 

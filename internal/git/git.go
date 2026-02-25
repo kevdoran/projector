@@ -153,6 +153,42 @@ func AvailableBranchName(repoPath, baseName string, now time.Time) (string, erro
 	return "", fmt.Errorf("could not find available branch name starting from %q", baseName)
 }
 
+// Remotes returns the list of remote names configured for the repository.
+func Remotes(repoPath string) ([]string, error) {
+	out, err := RunGit(repoPath, "remote")
+	if err != nil {
+		return nil, fmt.Errorf("remotes: %w", err)
+	}
+	if out == "" {
+		return nil, nil
+	}
+	return strings.Split(out, "\n"), nil
+}
+
+// RemoteForRef returns the remote name if ref is a remote-tracking ref (e.g. "origin/main" → "origin"),
+// or "" if it is a local ref. The check is done by matching configured remote names as prefixes.
+func RemoteForRef(repoPath, ref string) (string, error) {
+	remotes, err := Remotes(repoPath)
+	if err != nil {
+		return "", err
+	}
+	for _, remote := range remotes {
+		if strings.HasPrefix(ref, remote+"/") {
+			return remote, nil
+		}
+	}
+	return "", nil
+}
+
+// Fetch fetches from the given remote.
+func Fetch(repoPath, remote string) error {
+	_, err := RunGit(repoPath, "fetch", remote)
+	if err != nil {
+		return fmt.Errorf("fetch %s: %w", remote, err)
+	}
+	return nil
+}
+
 // MinVersionCheck verifies the installed git is at least version 2.5 (first worktree support).
 func MinVersionCheck() error {
 	out, err := RunGit(".", "version")

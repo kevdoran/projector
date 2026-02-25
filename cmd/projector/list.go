@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
-	"github.com/olekukonko/tablewriter"
-	"github.com/olekukonko/tablewriter/tw"
 	"github.com/spf13/cobra"
 
 	"github.com/kevdoran/projector/internal/project"
@@ -35,17 +34,13 @@ func newListCmd() *cobra.Command {
 				return nil
 			}
 
-			headers := []string{"PROJECT", "STATUS", "CREATED", "REPOS"}
-			if verbose {
-				headers = append(headers, "REPO NAMES")
-			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 
-			table := tablewriter.NewTable(os.Stdout,
-				tablewriter.WithHeader(headers),
-				tablewriter.WithBorders(tw.BorderNone),
-				tablewriter.WithHeaderAlignment(tw.AlignLeft),
-				tablewriter.WithRowAlignment(tw.AlignLeft),
-			)
+			if verbose {
+				fmt.Fprintln(w, "PROJECT\tSTATUS\tCREATED\tREPOS\tREPO NAMES")
+			} else {
+				fmt.Fprintln(w, "PROJECT\tSTATUS\tCREATED\tREPOS")
+			}
 
 			for _, p := range projects {
 				var repoCount int
@@ -67,20 +62,25 @@ func newListCmd() *cobra.Command {
 					}
 				}
 
-				created := humanizeTime(p.Project.CreatedAt)
-				row := []string{
-					p.Project.Name,
-					string(p.Project.Status),
-					created,
-					fmt.Sprintf("%d", repoCount),
-				}
 				if verbose {
-					row = append(row, strings.Join(repoNames, ", "))
+					fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\n",
+						p.Project.Name,
+						p.Project.Status,
+						humanizeTime(p.Project.CreatedAt),
+						repoCount,
+						strings.Join(repoNames, ", "),
+					)
+				} else {
+					fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
+						p.Project.Name,
+						p.Project.Status,
+						humanizeTime(p.Project.CreatedAt),
+						repoCount,
+					)
 				}
-				_ = table.Append(row)
 			}
 
-			_ = table.Render()
+			w.Flush()
 			return nil
 		},
 	}
