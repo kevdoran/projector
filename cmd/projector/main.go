@@ -20,7 +20,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "pj",
-		Short: "pj is for managing parallel projects backed by git worktrees",
+		Short: "📽️  pj — manage parallel projects backed by git worktrees",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Skip version check for help flags
 			if cmd.Name() == "help" {
@@ -30,7 +30,11 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
+	root.Version = version
+	root.SetVersionTemplate(versionString())
+
 	root.AddCommand(newProjectsCmd())
+	root.AddCommand(newVersionCmd())
 
 	// Rename Cobra's default "completion" command to "autocomp".
 	// InitDefaultCompletionCmd adds it now so we can rename it before Execute()

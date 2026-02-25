@@ -2,6 +2,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -32,6 +33,7 @@ type GlobalConfig struct {
 	ConfigVersion  int                   `toml:"config-version"`
 	ProjectsDir    string                `toml:"projects-dir"`
 	RepoSearchDirs []string              `toml:"repo-search-dirs"`
+	Editor         string                `toml:"editor,omitempty"`
 	Repos          map[string]RepoConfig `toml:"repos"`
 }
 
@@ -81,7 +83,14 @@ func Load() (*GlobalConfig, error) {
 	return cfg, nil
 }
 
+const editorComment = `# editor: command used by "pj project open". Accepts any executable that takes
+# a directory path as its first positional argument (e.g. cursor, code, subl,
+# bbedit, idea, zed, finder). You can specify a custom command or script here
+# provided it follows the same convention.
+`
+
 // Save writes the config to disk, creating the config directory if needed.
+// When the editor field is set, an explanatory comment is inserted above it.
 func Save(cfg *GlobalConfig) error {
 	path, err := configFilePath()
 	if err != nil {
@@ -92,16 +101,27 @@ func Save(cfg *GlobalConfig) error {
 		return fmt.Errorf("create config dir: %w", err)
 	}
 
+	cfg.ConfigVersion = CurrentConfigVersion
+
+	// Encode to a buffer so we can inject the editor comment before writing.
+	var buf bytes.Buffer
+	if err := toml.NewEncoder(&buf).Encode(cfg); err != nil {
+		return fmt.Errorf("encode config: %w", err)
+	}
+
+	content := buf.String()
+	if cfg.Editor != "" {
+		content = strings.Replace(content, "editor = ", editorComment+"editor = ", 1)
+	}
+
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("create config file: %w", err)
 	}
 	defer f.Close()
 
-	cfg.ConfigVersion = CurrentConfigVersion
-	enc := toml.NewEncoder(f)
-	if err := enc.Encode(cfg); err != nil {
-		return fmt.Errorf("encode config: %w", err)
+	if _, err := f.WriteString(content); err != nil {
+		return fmt.Errorf("write config: %w", err)
 	}
 	return nil
 }

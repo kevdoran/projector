@@ -59,6 +59,27 @@ default-base = "origin/develop"
 
 ### Commands
 
+#### `pj version`
+
+Show version and build info.
+
+```
+pj version
+pj --version
+```
+
+Example output:
+
+```
+📽️  pj v1.2.3
+    commit    abc1234
+    built     2026-02-24
+    go        go1.22.0
+    platform  darwin/arm64
+```
+
+Local dev builds (without ldflags) show `dev` / `unknown` for the injected fields.
+
 #### `pj project list`
 
 List all projects.
@@ -111,6 +132,49 @@ pj project create my-feature --base HEAD
 **Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically runs `git fetch` for that remote before creating the worktree, so the branch is always created from an up-to-date ref.
 
 **Rollback**: If any worktree fails to be created, all previously created worktrees and the project directory are removed automatically.
+
+#### `pj project open [project]`
+
+Open a project in your configured editor or IDE.
+
+```bash
+pj project open               # detect project from current directory
+pj project open my-feature
+```
+
+The first time this command is run (or when no editor is configured), an interactive prompt lets you choose from the supported options. Installed editors are annotated:
+
+```
+? Choose a default editor for 'pj project open'
+  Cursor          (installed)
+  VS Code         (installed)
+  Zed             (not installed)
+  Sublime Text    (installed)
+  BBEdit          (not installed)
+  IntelliJ IDEA   (not installed)
+  Finder (macOS)  (installed)
+```
+
+The choice is saved to `~/.projector/projector-config.toml`. You can change it there at any time, or set a completely custom command — any executable that accepts a directory path as its first positional argument works:
+
+```toml
+# editor: command used by "pj project open". Accepts any executable that takes
+# a directory path as its first positional argument (e.g. cursor, code, subl,
+# bbedit, idea, zed, finder). You can specify a custom command or script here
+# provided it follows the same convention.
+editor = "cursor"
+```
+
+#### `pj project path [project]`
+
+Print the absolute path to the project directory. Useful for scripting or shell navigation.
+
+```bash
+pj project path my-feature
+# /Users/alice/projects/my-feature
+
+cd $(pj project path my-feature)
+```
 
 #### `pj project add-repo [repos...]`
 
@@ -180,6 +244,26 @@ pj project archive my-feature
 
 The `.projector.toml` is updated to `status = "archived"` and the worktree state is saved for future restore. **Uncommitted changes in any worktree will prevent archiving.**
 
+#### `pj project delete [project]`
+
+Permanently delete a project. Removes all git worktrees and the project directory. Works on both active and archived projects.
+
+```bash
+pj project delete               # detect project from current directory
+pj project delete my-feature
+pj project delete my-feature --delete-branches   # also delete git branches
+pj project delete my-feature --yes               # skip confirmation prompt
+```
+
+A confirmation prompt is shown before any destructive action. Pass `-y` / `--yes` to skip it (useful in scripts).
+
+**Safety checks** — the following will cause the command to refuse:
+- Any worktree has uncommitted changes or untracked files
+- The project directory contains unexpected files (anything other than `.projector.toml` and worktree subdirectories)
+- `--delete-branches` is set and a branch has unpushed commits (override with `--force`)
+
+`--force` only bypasses the unpushed commits check. Dirty worktrees and unexpected project directory files are always enforced.
+
 #### `pj project restore [project]`
 
 Restore an archived project by recreating all its git worktrees.
@@ -220,23 +304,17 @@ For two repos (`git-repo-1`, `git-repo-2`) and two projects (`foo`, `bar`):
 ### Build
 
 ```bash
-go build -o pj ./cmd/projector
+make build    # build ./pj with version info from git
+make install  # install to $(go env GOPATH)/bin
+make test     # go test -v -race -count=1 ./...
+make vet      # go vet ./...
+make tidy     # go mod tidy
+make clean    # remove ./pj
 ```
 
-### Test
-
-```bash
-go test -v -race -count=1 ./...
-```
+`make build` uses `git describe --tags --always --dirty` for the version string, so tagged releases produce a clean `v1.2.3` while development builds show the commit hash (with a `-dirty` suffix if there are uncommitted changes).
 
 Tests use `t.TempDir()` for isolation (auto-cleaned). Integration tests in `internal/git` use real git repositories.
-
-### Vet & Tidy
-
-```bash
-go vet ./...
-go mod tidy
-```
 
 ### Project Layout
 

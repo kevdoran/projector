@@ -11,9 +11,12 @@ func newProjectsCmd() *cobra.Command {
 		newListCmd(),
 		newCreateCmd(),
 		newDescCmd(),
+		newOpenCmd(),
+		newPathCmd(),
 		newAddRepoCmd(),
 		newArchiveCmd(),
 		newRestoreCmd(),
+		newDeleteCmd(),
 	)
 	return cmd
 }

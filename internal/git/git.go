@@ -189,6 +189,24 @@ func Fetch(repoPath, remote string) error {
 	return nil
 }
 
+// HasUnpushedCommits returns true if the given branch has commits that have not
+// been pushed to any remote. Returns false (no check performed) if the repo has
+// no remotes configured.
+func HasUnpushedCommits(repoPath, branch string) (bool, error) {
+	remotes, err := Remotes(repoPath)
+	if err != nil {
+		return false, err
+	}
+	if len(remotes) == 0 {
+		return false, nil
+	}
+	out, err := RunGit(repoPath, "log", branch, "--not", "--remotes", "--oneline")
+	if err != nil {
+		return false, fmt.Errorf("check unpushed commits: %w", err)
+	}
+	return strings.TrimSpace(out) != "", nil
+}
+
 // MinVersionCheck verifies the installed git is at least version 2.5 (first worktree support).
 func MinVersionCheck() error {
 	out, err := RunGit(".", "version")

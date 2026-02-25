@@ -192,7 +192,7 @@ func newCreateCmd() *cobra.Command {
 				return fmt.Errorf("save project config: %w", err)
 			}
 
-			fmt.Printf("Project %q created at %s\n", name, projectDir)
+			fmt.Printf("📽️  Project %q created at %s\n", name, projectDir)
 			return nil
 		},
 	}

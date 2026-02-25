@@ -74,6 +74,49 @@ func SelectRepos(available []repo.Repo, exclude []string) ([]repo.Repo, error) {
 	return result, nil
 }
 
+// EditorOption represents a selectable editor in the SelectEditor prompt.
+type EditorOption struct {
+	Name      string // display name, e.g. "Cursor"
+	Command   string // value stored in config, e.g. "cursor"
+	Installed bool   // whether the command was detected on PATH
+}
+
+// SelectEditor presents an interactive single-select prompt for choosing a default editor.
+func SelectEditor(options []EditorOption) (string, error) {
+	var huhOptions []huh.Option[string]
+	for _, o := range options {
+		label := o.Name
+		if o.Installed {
+			label += "  (installed)"
+		} else {
+			label += "  (not installed)"
+		}
+		huhOptions = append(huhOptions, huh.NewOption(label, o.Command))
+	}
+
+	km := huh.NewDefaultKeyMap()
+	km.Quit = key.NewBinding(key.WithKeys("ctrl+c", "esc"))
+
+	var selected string
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Choose a default editor for 'pj project open'").
+				Description("Select with arrow keys, confirm with enter, esc to abort").
+				Options(huhOptions...).
+				Value(&selected),
+		),
+	).WithKeyMap(km)
+
+	if err := form.Run(); err != nil {
+		if errors.Is(err, huh.ErrUserAborted) {
+			return "", ErrAborted
+		}
+		return "", fmt.Errorf("editor selection: %w", err)
+	}
+	return selected, nil
+}
+
 // InitConfig runs an interactive first-time setup form and returns a populated GlobalConfig.
 func InitConfig() (*config.GlobalConfig, error) {
 	var projectsDir string

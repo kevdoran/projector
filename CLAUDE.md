@@ -3,32 +3,32 @@
 ## Quick Reference
 
 ```bash
-# Build
-go build -o pj ./cmd/projector
+# Build (preferred — injects version info from git)
+make build
 
 # Run tests (all packages)
-go test -v -race -count=1 ./...
-
-# Run a single package
-go test -v -race -count=1 ./internal/git/...
+make test
 
 # Vet
-go vet ./...
+make vet
 
 # Tidy dependencies
-go mod tidy
+make tidy
+
+# Run a single package (no make target — use go directly)
+go test -v -race -count=1 ./internal/git/...
 ```
 
 ## Package Overview
 
 | Package | Responsibility |
 |---|---|
-| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `addrepo.go`, `archive.go`, `restore.go`). No business logic — delegate to internal packages. |
+| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `open.go`, `path.go`, `addrepo.go`, `archive.go`, `restore.go`, `delete.go`, `version.go`). No business logic — delegate to internal packages. |
 | `internal/config` | `GlobalConfig` struct, `Load`/`Save`/`ResolveBase`/`Validate`. TOML I/O for `~/.projector/projector-config.toml`. |
 | `internal/project` | `ProjectConfig` struct, `Load`/`Save`/`ListAll`/`FindProjectDir`/`ValidateName`/`DiscoverWorktrees`. TOML I/O for `<projects-dir>/<name>/.projector.toml`. |
-| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `WorktreeList`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `Remotes`, `RemoteForRef`, `Fetch`, `MinVersionCheck`. |
+| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `WorktreeList`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `Remotes`, `RemoteForRef`, `Fetch`, `HasUnpushedCommits`, `MinVersionCheck`. |
 | `internal/repo` | `Repo` struct, `Discover` (non-recursive scan of search dirs), `ResolveRepos` (name or abs-path lookup). |
-| `internal/tui` | `SelectRepos` (huh multi-select), `InitConfig` (huh first-time setup form). |
+| `internal/tui` | `SelectRepos` (huh multi-select), `SelectEditor` (huh single-select with installed/not-installed annotations), `InitConfig` (huh first-time setup form). |
 
 ## Conventions
 
