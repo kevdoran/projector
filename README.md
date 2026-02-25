@@ -1,18 +1,15 @@
-# projector | pj
+# 📽️ projector | pj
 
 [![CI](https://github.com/kevdoran/projector/actions/workflows/ci.yml/badge.svg)](https://github.com/kevdoran/projector/actions/workflows/ci.yml)
 
-Projector (`pj`) is for managing parallel projects backed by git worktrees.
+`pj` manages parallel, isolated project workspaces backed by [git worktrees](docs/worktrees.md). A single command creates worktrees across all your repositories, organized into a project directory you can open as a Cursor workspace or point a coding agent at.
 
-Create a named project consisting of git worktrees from all the relevant git repositories. The result is a clean, isolated, multi-repo project directory from which you can launch a new Cursor workspace or Claude Code session.
+```bash
+pj project create feature-x api frontend infra
+# Creates ~/projects/feature-x/ with a worktree from each repo, ready to go.
+```
 
-Stop thinking about:
-
-- ❌ Context switching (for you and your agents) using `git stash & git checkout main` or `git commit -a -m WIP && git checkout other-branch`
-- ❌ If I start a new agent to work on this bugfix, will it interfere with my current agent working on that big feature?
-- ❌ Manually doing Cursor `Add folder to workspace` operations or repetative `git worktree add/remove` bookkeeping
-
-You may have heard that git worktrees are a better solution for working with multiple coding agents in parallel. Maybe you are already using them, but find them tedious to manage, especially when working on a software system that spans mutliple git repositories, and a new parallel task means creating a new worktree in every repo. If so, you may find `pj` a useful tool to abstract "copies" (worktrees) of repositories behind a "project" concept.
+If you work across multiple repos and run multiple coding agents (or just multiple tasks) in parallel, `pj` replaces the manual `git worktree add/remove` bookkeeping with a simple project abstraction. See [Why git worktrees?](docs/worktrees.md) for background on the approach.
 
 ## User Guide
 
@@ -21,10 +18,16 @@ You may have heard that git worktrees are a better solution for working with mul
 **Homebrew** (macOS and Linux):
 
 ```bash
-brew install kevdoran/tap/pj
+brew install --cask kevdoran/tap/pj
 ```
 
-**Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH.
+**macOS note**: since the binaries are not yet code-signed, macOS may block execution. Remove the quarantine attribute to fix this:
+
+```bash
+xattr -d com.apple.quarantine /usr/local/bin/pj
+```
+
+**Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH. See the note above about manually telling macOS to trust the binary (you can verify the sha digest from the download site).
 
 **From source** (requires Go 1.25+ and git 2.5+):
 
