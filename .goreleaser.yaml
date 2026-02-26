@@ -6,7 +6,8 @@ before:
     - go vet ./...
 
 builds:
-  - main: ./cmd/projector
+  - id: pj
+    main: ./cmd/projector
     binary: pj
     env:
       - CGO_ENABLED=0
@@ -28,7 +29,7 @@ notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
       ids:
-        - default
+        - pj
       sign:
         certificate: "{{.Env.MACOS_SIGN_P12}}"
         password: "{{.Env.MACOS_SIGN_PASSWORD}}"
