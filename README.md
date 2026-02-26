@@ -24,7 +24,7 @@ brew install --cask kevdoran/tap/pj
 **macOS note**: since the binaries are not yet code-signed, macOS may block execution. Remove the quarantine attribute to fix this:
 
 ```bash
-xattr -d com.apple.quarantine /usr/local/bin/pj
+xattr -d com.apple.quarantine /opt/homebrew/bin/pj
 ```
 
 **Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH. See the note above about manually telling macOS to trust the binary (you can verify the sha digest from the download site).
@@ -38,6 +38,49 @@ make build
 # Move or copy to a directory on your PATH, e.g.:
 mv pj /usr/local/bin/pj
 ```
+
+### Quick Start
+
+```
+$ pj project create my-feature
+
+  Projects directory
+  > ~/projects
+
+  Repository search directories (optional)
+  > ~/repos/work,~/repos/personal
+
+  Configuration saved to ~/.projector/projector-config.toml
+
+  Select repositories to include in this project
+  > [x] api
+    [x] frontend
+    [ ] docs
+    [x] infra
+
+  Fetching origin/main for api... done
+  Fetching origin/main for frontend... done
+  Fetching origin/main for infra... done
+  Created project "my-feature" with 3 repos
+
+$ pj project desc my-feature
+
+  REPO        BRANCH       STATUS
+  api         my-feature   clean
+  frontend    my-feature   clean
+  infra       my-feature   clean
+
+$ pj project open my-feature
+
+  ? Choose a default editor for 'pj project open'
+  > Cursor          (installed)
+    VS Code         (installed)
+    Zed             (not installed)
+
+  Opening my-feature in Cursor...
+```
+
+On subsequent runs, first-time setup is skipped and the editor choice is remembered.
 
 ### First-time Setup
 
