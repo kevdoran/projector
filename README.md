@@ -21,13 +21,7 @@ If you work across multiple repos and run multiple coding agents (or just multip
 brew install --cask kevdoran/tap/pj
 ```
 
-**macOS note**: since the binaries are not yet code-signed, macOS may block execution. Remove the quarantine attribute to fix this:
-
-```bash
-xattr -d com.apple.quarantine /opt/homebrew/bin/pj
-```
-
-**Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH. See the note above about manually telling macOS to trust the binary (you can verify the sha digest from the download site).
+**Binary download**: grab the latest release from [GitHub Releases](https://github.com/kevdoran/projector/releases), extract, and move `pj` to a directory on your PATH.
 
 **From source** (requires Go 1.25+ and git 2.5+):
 
