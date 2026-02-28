@@ -45,6 +45,22 @@ func newRestoreCmd() *cobra.Command {
 					continue
 				}
 
+				if record.Branch == "" {
+					// Detached worktree: restore in detached HEAD state.
+					commitish := record.Commit
+					if commitish == "" {
+						commitish = "HEAD" // fallback for legacy records
+					}
+					if err := git.WorktreeAddDetached(record.RepoPath, record.WorktreePath, commitish); err != nil {
+						fmt.Fprintf(os.Stderr, "warning: restore detached %s: %v, skipping\n", record.RepoName, err)
+						skipped = append(skipped, record.RepoName)
+						continue
+					}
+					fmt.Printf("  restored: %s → %s (detached)\n", record.RepoName, record.WorktreePath)
+					restored = append(restored, record.RepoName)
+					continue
+				}
+
 				// Check if the branch still exists
 				branchExists, err := git.BranchExists(record.RepoPath, record.Branch)
 				if err != nil {

@@ -21,6 +21,7 @@ func newCreateCmd() *cobra.Command {
 		fromProject string
 		empty       bool
 		base        string
+		detached    bool
 	)
 
 	cmd := &cobra.Command{
@@ -160,23 +161,36 @@ func newCreateCmd() *cobra.Command {
 					}
 				}
 
-				// Find available branch name
-				branchName, err := git.AvailableBranchName(r.Path, name, now)
-				if err != nil {
-					rollback()
-					return fmt.Errorf("branch name for %s: %w", r.Name, err)
-				}
-
 				worktreePath := filepath.Join(projectDir, r.Name+"+"+name)
-				if err := git.WorktreeAdd(r.Path, worktreePath, repoBase, branchName, true); err != nil {
-					rollback()
-					return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+
+				if detached {
+					if err := git.WorktreeAddDetached(r.Path, worktreePath, repoBase); err != nil {
+						rollback()
+						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+					}
+					created = append(created, struct {
+						repoPath     string
+						worktreePath string
+					}{r.Path, worktreePath})
+					fmt.Printf("  created worktree: %s (detached at %s)\n", worktreePath, repoBase)
+				} else {
+					// Find available branch name
+					branchName, err := git.AvailableBranchName(r.Path, name, now)
+					if err != nil {
+						rollback()
+						return fmt.Errorf("branch name for %s: %w", r.Name, err)
+					}
+
+					if err := git.WorktreeAdd(r.Path, worktreePath, repoBase, branchName, true); err != nil {
+						rollback()
+						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+					}
+					created = append(created, struct {
+						repoPath     string
+						worktreePath string
+					}{r.Path, worktreePath})
+					fmt.Printf("  created worktree: %s (branch: %s)\n", worktreePath, branchName)
 				}
-				created = append(created, struct {
-					repoPath     string
-					worktreePath string
-				}{r.Path, worktreePath})
-				fmt.Printf("  created worktree: %s (branch: %s)\n", worktreePath, branchName)
 			}
 
 			// Write .projector.toml
@@ -200,7 +214,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&fromProject, "from", "", "Copy repo list from an existing project")
 	cmd.Flags().BoolVar(&empty, "empty", false, "Create an empty project with no repos")
 	cmd.Flags().StringVar(&base, "base", "", "Git ref to branch from (branch, tag, SHA, or remote ref such as origin/main); remote refs are fetched automatically")
+	cmd.Flags().BoolVar(&detached, "detached", false, "Create worktrees in detached HEAD state (no branch)")
 
 	return cmd
 }
-

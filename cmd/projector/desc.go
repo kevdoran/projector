@@ -42,9 +42,10 @@ func newDescCmd() *cobra.Command {
 
 // worktreeStatus pairs a live WorktreeInfo with its git status.
 type worktreeStatus struct {
-	info  project.WorktreeInfo
-	clean bool
-	lines []string // git status --short lines, populated when dirty
+	info   project.WorktreeInfo
+	clean  bool
+	lines  []string // git status --short lines, populated when dirty
+	commit string   // archived commit SHA (for detached worktrees)
 }
 
 // collectWorktreeStatuses gathers live worktree info and git status for active projects,
@@ -60,6 +61,7 @@ func collectWorktreeStatuses(projectDir string, p *project.ProjectConfig) ([]wor
 					WorktreePath: wt.WorktreePath,
 					Branch:       wt.Branch,
 				},
+				commit: wt.Commit,
 			})
 		}
 		return statuses, nil
@@ -100,7 +102,11 @@ func descSummary(projectDir string, p *project.ProjectConfig) error {
 		default:
 			statusStr = fmt.Sprintf("dirty (%d)", len(s.lines))
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\n", s.info.RepoName, s.info.Branch, statusStr)
+		branchDisplay := s.info.Branch
+		if branchDisplay == "" {
+			branchDisplay = "(detached)"
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\n", s.info.RepoName, branchDisplay, statusStr)
 	}
 	w.Flush()
 	return nil
@@ -124,11 +130,15 @@ func descVerbose(projectDir string, p *project.ProjectConfig) error {
 	for _, s := range statuses {
 		fmt.Println()
 
+		branchDisplay := s.info.Branch
+		if branchDisplay == "" {
+			branchDisplay = detachedDisplay(s)
+		}
 		dirty := p.Project.Status == project.StatusActive && !s.clean
 		if dirty {
-			fmt.Fprintf(os.Stdout, "%s  [%s]  dirty\n", s.info.RepoName, s.info.Branch)
+			fmt.Fprintf(os.Stdout, "%s  [%s]  dirty\n", s.info.RepoName, branchDisplay)
 		} else {
-			fmt.Fprintf(os.Stdout, "%s  [%s]\n", s.info.RepoName, s.info.Branch)
+			fmt.Fprintf(os.Stdout, "%s  [%s]\n", s.info.RepoName, branchDisplay)
 		}
 
 		// %-6s aligns "path" (4) and "status" (6) to the same value column.
@@ -147,4 +157,17 @@ func descVerbose(projectDir string, p *project.ProjectConfig) error {
 		}
 	}
 	return nil
+}
+
+// detachedDisplay returns a display string for a detached worktree.
+// For active worktrees it reads HEAD from disk; for archived ones it uses the stored commit.
+func detachedDisplay(s worktreeStatus) string {
+	sha, err := git.HeadSHA(s.info.WorktreePath)
+	if err != nil || len(sha) < 7 {
+		sha = s.commit
+	}
+	if len(sha) >= 7 {
+		return sha[:7] + " (detached)"
+	}
+	return "(detached)"
 }

@@ -26,7 +26,7 @@ go test -v -race -count=1 ./internal/git/...
 | `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `open.go`, `path.go`, `addrepo.go`, `archive.go`, `restore.go`, `delete.go`, `version.go`). No business logic — delegate to internal packages. |
 | `internal/config` | `GlobalConfig` struct, `Load`/`Save`/`ResolveBase`/`Validate`. TOML I/O for `~/.projector/projector-config.toml`. |
 | `internal/project` | `ProjectConfig` struct, `Load`/`Save`/`ListAll`/`FindProjectDir`/`ValidateName`/`DiscoverWorktrees`. TOML I/O for `<projects-dir>/<name>/.projector.toml`. |
-| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeRemove`, `WorktreeList`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `Remotes`, `RemoteForRef`, `Fetch`, `HasUnpushedCommits`, `MinVersionCheck`. |
+| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeAddDetached`, `WorktreeRemove`, `WorktreeList`, `StatusPorcelain`, `RefExists`, `BranchExists`, `CurrentBranch`, `AvailableBranchName`, `Remotes`, `RemoteForRef`, `Fetch`, `HasUnpushedCommits`, `HeadSHA`, `MinVersionCheck`. |
 | `internal/repo` | `Repo` struct, `Discover` (non-recursive scan of search dirs), `ResolveRepos` (name or abs-path lookup). |
 | `internal/tui` | `SelectRepos` (huh multi-select), `SelectEditor` (huh single-select with installed/not-installed annotations), `InitConfig` (huh first-time setup form). |
 

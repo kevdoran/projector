@@ -58,6 +58,7 @@ type WorktreeRecord struct {
 	RepoPath     string `toml:"repo-path"`
 	WorktreePath string `toml:"worktree-path"`
 	Branch       string `toml:"branch"`
+	Commit       string `toml:"commit,omitempty"`
 }
 
 // WorktreeInfo is the runtime (dynamically discovered) view of a live worktree.

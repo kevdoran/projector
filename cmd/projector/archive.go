@@ -36,8 +36,10 @@ func newArchiveCmd() *cobra.Command {
 				return fmt.Errorf("discover worktrees: %w", err)
 			}
 
-			// Pre-validate: check all worktrees are clean
+			// Pre-validate: check all worktrees are clean and capture HEAD SHAs
+			// for detached worktrees (must be done before removal).
 			var dirtyRepos []string
+			detachedSHAs := map[string]string{} // worktreePath → SHA
 			for _, wt := range worktrees {
 				clean, lines, err := git.StatusPorcelain(wt.WorktreePath)
 				if err != nil {
@@ -45,6 +47,13 @@ func newArchiveCmd() *cobra.Command {
 				}
 				if !clean {
 					dirtyRepos = append(dirtyRepos, fmt.Sprintf("  %s (%d modified files)", wt.RepoName, len(lines)))
+				}
+				if wt.Branch == "" {
+					sha, err := git.HeadSHA(wt.WorktreePath)
+					if err != nil {
+						return fmt.Errorf("get HEAD SHA for detached worktree %s: %w", wt.RepoName, err)
+					}
+					detachedSHAs[wt.WorktreePath] = sha
 				}
 			}
 			if len(dirtyRepos) > 0 {
@@ -122,12 +131,16 @@ func newArchiveCmd() *cobra.Command {
 			now := time.Now().UTC()
 			var records []project.WorktreeRecord
 			for _, wt := range worktrees {
-				records = append(records, project.WorktreeRecord{
+				record := project.WorktreeRecord{
 					RepoName:     wt.RepoName,
 					RepoPath:     wt.RepoPath,
 					WorktreePath: wt.WorktreePath,
 					Branch:       wt.Branch,
-				})
+				}
+				if sha, ok := detachedSHAs[wt.WorktreePath]; ok {
+					record.Commit = sha
+				}
+				records = append(records, record)
 			}
 			p.Project.Status = project.StatusArchived
 			p.Project.ArchivedAt = &now
