@@ -34,7 +34,10 @@ func RunGit(workingDir string, args ...string) (string, error) {
 func WorktreeAdd(repoPath, worktreePath, base, branch string, createBranch bool) error {
 	args := []string{"worktree", "add"}
 	if createBranch {
-		args = append(args, "-b", branch)
+		// Use -c to prevent the new branch from automatically tracking the
+		// remote base ref (e.g. origin/main) as its upstream. Users can set
+		// the upstream manually if needed.
+		args = []string{"-c", "branch.autoSetupMerge=false", "worktree", "add", "-b", branch}
 	}
 	args = append(args, worktreePath)
 	if base != "" {
@@ -51,6 +54,24 @@ func WorktreeAdd(repoPath, worktreePath, base, branch string, createBranch bool)
 		return fmt.Errorf("worktree add: %w", err)
 	}
 	return nil
+}
+
+// WorktreeAddDetached creates a new git worktree in detached HEAD state.
+func WorktreeAddDetached(repoPath, worktreePath, commitish string) error {
+	_, err := RunGit(repoPath, "worktree", "add", "--detach", worktreePath, commitish)
+	if err != nil {
+		return fmt.Errorf("worktree add detached: %w", err)
+	}
+	return nil
+}
+
+// HeadSHA returns the full 40-character SHA of HEAD in the given directory.
+func HeadSHA(dir string) (string, error) {
+	out, err := RunGit(dir, "rev-parse", "HEAD")
+	if err != nil {
+		return "", fmt.Errorf("head sha: %w", err)
+	}
+	return out, nil
 }
 
 // WorktreeRemove removes a git worktree from the repository.

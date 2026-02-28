@@ -12,8 +12,8 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) $(MODULE)
 	@echo "Built ./$(BINARY) — run './$(BINARY) --help' to get started"
 
-install:
-	go install -ldflags "$(LDFLAGS)" $(MODULE)
+install: build
+	cp $(BINARY) $(shell go env GOPATH)/bin/$(BINARY)
 
 test:
 	go test -v -race -count=1 ./...

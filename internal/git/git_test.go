@@ -255,6 +255,70 @@ func TestAvailableBranchName_DoubleCollision(t *testing.T) {
 	}
 }
 
+func TestWorktreeAdd_NoUpstreamTracking(t *testing.T) {
+	// Create an "upstream" repo and clone it so we have remote-tracking refs.
+	upstream := createTestRepo(t)
+	cloneDir := filepath.Join(t.TempDir(), "clone")
+	if _, err := git.RunGit(t.TempDir(), "clone", upstream, cloneDir); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+
+	// Determine the default branch name in the clone
+	defaultBranch, err := git.CurrentBranch(cloneDir)
+	if err != nil {
+		t.Fatalf("CurrentBranch: %v", err)
+	}
+
+	// Create a worktree branching from origin/<default>
+	wtPath := filepath.Join(t.TempDir(), "wt-no-track")
+	base := "origin/" + defaultBranch
+	if err := git.WorktreeAdd(cloneDir, wtPath, base, "my-feature", true); err != nil {
+		t.Fatalf("WorktreeAdd: %v", err)
+	}
+
+	// Verify no upstream is set on the new branch
+	_, err = git.RunGit(cloneDir, "config", "branch.my-feature.remote")
+	if err == nil {
+		t.Fatal("expected branch.my-feature.remote to be unset, but it was configured")
+	}
+}
+
+func TestWorktreeAddDetached(t *testing.T) {
+	repo := createTestRepo(t)
+	worktreePath := filepath.Join(t.TempDir(), "detached-wt")
+
+	if err := git.WorktreeAddDetached(repo, worktreePath, "HEAD"); err != nil {
+		t.Fatalf("WorktreeAddDetached: %v", err)
+	}
+
+	// Verify worktree directory was created
+	if _, err := os.Stat(worktreePath); err != nil {
+		t.Fatalf("worktree dir not created: %v", err)
+	}
+
+	// Verify it's in detached HEAD state
+	branch, err := git.CurrentBranch(worktreePath)
+	if err == nil {
+		t.Fatalf("expected detached HEAD error, got branch %q", branch)
+	}
+
+	// Clean up
+	if err := git.WorktreeRemove(repo, worktreePath); err != nil {
+		t.Fatalf("WorktreeRemove: %v", err)
+	}
+}
+
+func TestHeadSHA(t *testing.T) {
+	repo := createTestRepo(t)
+	sha, err := git.HeadSHA(repo)
+	if err != nil {
+		t.Fatalf("HeadSHA: %v", err)
+	}
+	if len(sha) != 40 {
+		t.Fatalf("expected 40-char SHA, got %q (len %d)", sha, len(sha))
+	}
+}
+
 func TestMinVersionCheck(t *testing.T) {
 	if err := git.MinVersionCheck(); err != nil {
 		t.Fatalf("MinVersionCheck: %v", err)

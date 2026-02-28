@@ -17,6 +17,8 @@ import (
 )
 
 func newAddRepoCmd() *cobra.Command {
+	var detached bool
+
 	cmd := &cobra.Command{
 		Use:   "add-repo [repos...]",
 		Short: "Add one or more repositories to a project",
@@ -131,21 +133,43 @@ func newAddRepoCmd() *cobra.Command {
 					return fmt.Errorf("resolve base for %s: %w", r.Name, err)
 				}
 
-				branchName, err := git.AvailableBranchName(r.Path, projectName, now)
+				// Fetch before using a remote-tracking ref so it is up to date.
+				remote, err := git.RemoteForRef(r.Path, base)
 				if err != nil {
-					return fmt.Errorf("branch name for %s: %w", r.Name, err)
+					return fmt.Errorf("check remote for %s: %w", r.Name, err)
+				}
+				if remote != "" {
+					fmt.Printf("  fetching %s in %s…\n", remote, r.Name)
+					if err := git.Fetch(r.Path, remote); err != nil {
+						return fmt.Errorf("fetch %s in %s: %w", remote, r.Name, err)
+					}
 				}
 
 				worktreePath := filepath.Join(projectDir, r.Name+"+"+projectName)
-				if err := git.WorktreeAdd(r.Path, worktreePath, base, branchName, true); err != nil {
-					return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+
+				if detached {
+					if err := git.WorktreeAddDetached(r.Path, worktreePath, base); err != nil {
+						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+					}
+					fmt.Printf("  added worktree: %s (detached at %s)\n", worktreePath, base)
+				} else {
+					branchName, err := git.AvailableBranchName(r.Path, projectName, now)
+					if err != nil {
+						return fmt.Errorf("branch name for %s: %w", r.Name, err)
+					}
+
+					if err := git.WorktreeAdd(r.Path, worktreePath, base, branchName, true); err != nil {
+						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+					}
+					fmt.Printf("  added worktree: %s (branch: %s)\n", worktreePath, branchName)
 				}
-				fmt.Printf("  added worktree: %s (branch: %s)\n", worktreePath, branchName)
 			}
 
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&detached, "detached", false, "Create worktrees in detached HEAD state (no branch)")
 
 	return cmd
 }

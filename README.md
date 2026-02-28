@@ -174,6 +174,13 @@ pj project create my-feature --base HEAD
 
 **Branch base**: By default branches are created from `origin/main` → `HEAD` (configurable per-repo via `[repos.<name>]` in the config file). Use `--base <ref>` to specify any git ref explicitly. When `--from` is used without `--base`, each repo branches from the corresponding worktree branch of the source project.
 
+**Detached HEAD**: Use `--detached` to skip branch creation entirely. Worktrees are created in detached HEAD state, letting you decide later whether and what to name a branch. Works with all other flags (`--base`, `--from`, etc.).
+
+```bash
+pj project create my-feature --detached
+pj project create my-feature --detached --base origin/release-2.0
+```
+
 **Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically runs `git fetch` for that remote before creating the worktree, so the branch is always created from an up-to-date ref.
 
 **Rollback**: If any worktree fails to be created, all previously created worktrees and the project directory are removed automatically.
@@ -234,6 +241,9 @@ pj project add-repo new-repo /abs/path/to/another-repo
 
 # Specify project explicitly (by name) and repos
 pj project add-repo my-feature new-repo
+
+# Add repos in detached HEAD state (no branch created)
+pj project add-repo --detached new-repo
 ```
 
 #### `pj project desc [project]`
