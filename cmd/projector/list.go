@@ -19,7 +19,7 @@ func newListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List all projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}

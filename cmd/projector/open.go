@@ -31,7 +31,7 @@ func newOpenCmd() *cobra.Command {
 		Short: "Open a project in the configured editor or IDE",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}

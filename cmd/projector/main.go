@@ -8,7 +8,6 @@ import (
 
 	"github.com/kevdoran/projector/internal/config"
 	"github.com/kevdoran/projector/internal/git"
-	"github.com/kevdoran/projector/internal/tui"
 )
 
 func main() {
@@ -34,6 +33,7 @@ func newRootCmd() *cobra.Command {
 	root.SetVersionTemplate(versionString())
 
 	root.AddCommand(newProjectsCmd())
+	root.AddCommand(newConfigCmd())
 	root.AddCommand(newVersionCmd())
 
 	// Rename Cobra's default "completion" command to "autocomp".
@@ -52,25 +52,14 @@ func newRootCmd() *cobra.Command {
 	return root
 }
 
-// loadOrInitConfig loads the global config, running first-time setup if needed.
-func loadOrInitConfig() (*config.GlobalConfig, error) {
+// loadConfig loads the global config, returning an error if not found.
+func loadConfig() (*config.GlobalConfig, error) {
 	cfg, err := config.Load()
 	if err == nil {
 		return cfg, nil
 	}
-	if err != config.ErrNotFound {
-		return nil, fmt.Errorf("load config: %w", err)
+	if err == config.ErrNotFound {
+		return nil, fmt.Errorf("no configuration found; run 'pj config setup' to set up pj")
 	}
-
-	// First-time setup
-	fmt.Println("No projector configuration found. Let's set it up!")
-	cfg, err = tui.InitConfig()
-	if err != nil {
-		return nil, fmt.Errorf("setup: %w", err)
-	}
-	if err := config.Save(cfg); err != nil {
-		return nil, fmt.Errorf("save config: %w", err)
-	}
-	fmt.Println("Configuration saved.")
-	return cfg, nil
+	return nil, fmt.Errorf("load config: %w", err)
 }

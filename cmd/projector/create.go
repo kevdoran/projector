@@ -32,7 +32,7 @@ func newCreateCmd() *cobra.Command {
 			name := args[0]
 			repoArgs := args[1:]
 
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}
@@ -83,6 +83,10 @@ func newCreateCmd() *cobra.Command {
 				discovered, err := repo.Discover(cfg.RepoSearchDirs)
 				if err != nil {
 					return fmt.Errorf("discover repos: %w", err)
+				}
+				if len(discovered) == 0 {
+					printNoReposFound(cfg.RepoSearchDirs)
+					return nil
 				}
 				repos, err = tui.SelectRepos(discovered, nil)
 				if err != nil {

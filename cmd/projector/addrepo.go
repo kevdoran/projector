@@ -23,7 +23,7 @@ func newAddRepoCmd() *cobra.Command {
 		Use:   "add-repo [repos...]",
 		Short: "Add one or more repositories to a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}
@@ -109,6 +109,10 @@ func newAddRepoCmd() *cobra.Command {
 				discovered, err := repo.Discover(cfg.RepoSearchDirs)
 				if err != nil {
 					return fmt.Errorf("discover repos: %w", err)
+				}
+				if len(discovered) == 0 {
+					printNoReposFound(cfg.RepoSearchDirs)
+					return nil
 				}
 				repos, err = tui.SelectRepos(discovered, existingNamesList)
 				if err != nil {

@@ -51,8 +51,8 @@ func ConfigDir() (string, error) {
 	return filepath.Join(home, configDirName), nil
 }
 
-// configFilePath returns the full path to projector-config.toml.
-func configFilePath() (string, error) {
+// ConfigFilePath returns the full path to projector-config.toml.
+func ConfigFilePath() (string, error) {
 	dir, err := ConfigDir()
 	if err != nil {
 		return "", err
@@ -63,7 +63,7 @@ func configFilePath() (string, error) {
 // Load reads and parses the global config file.
 // Returns ErrNotFound if the file does not exist.
 func Load() (*GlobalConfig, error) {
-	path, err := configFilePath()
+	path, err := ConfigFilePath()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ const editorComment = `# editor: command used by "pj project open". Accepts any 
 // Save writes the config to disk, creating the config directory if needed.
 // When the editor field is set, an explanatory comment is inserted above it.
 func Save(cfg *GlobalConfig) error {
-	path, err := configFilePath()
+	path, err := ConfigFilePath()
 	if err != nil {
 		return err
 	}
