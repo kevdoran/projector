@@ -110,6 +110,10 @@ func newAddRepoCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("discover repos: %w", err)
 				}
+				if len(discovered) == 0 {
+					printNoReposFound(cfg.RepoSearchDirs)
+					return nil
+				}
 				repos, err = tui.SelectRepos(discovered, existingNamesList)
 				if err != nil {
 					if errors.Is(err, tui.ErrAborted) {

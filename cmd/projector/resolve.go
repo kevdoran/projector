@@ -34,3 +34,19 @@ func resolveProject(projectsDir string, args []string) (string, *project.Project
 
 	return projectDir, p, nil
 }
+
+// printNoReposFound prints a helpful message when no git repositories are
+// found in the configured search directories, and directs the user to
+// pj config setup to fix the issue.
+func printNoReposFound(searchDirs []string) {
+	fmt.Println("No git repositories found.")
+	if len(searchDirs) == 0 {
+		fmt.Println("No repository search directories are configured.")
+	} else {
+		fmt.Println("Searched directories:")
+		for _, dir := range searchDirs {
+			fmt.Printf("  %s\n", dir)
+		}
+	}
+	fmt.Println("\nRun 'pj config setup' to update your repository search directories.")
+}

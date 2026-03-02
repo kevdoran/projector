@@ -60,7 +60,13 @@ func runConfigWizard() error {
 			huh.NewInput().
 				Title("Repository search directories").
 				Description("Parent directories of your git repository clones.\nOnly direct subdirectories are searched (not recursive).\nMultiple directories separated by commas.").
-				Value(&repoSearchDirsRaw),
+				Value(&repoSearchDirsRaw).
+				Validate(func(s string) error {
+					if strings.TrimSpace(s) == "" {
+						return fmt.Errorf("at least one repository search directory is required")
+					}
+					return nil
+				}),
 		),
 	).WithKeyMap(km)
 
@@ -132,6 +138,9 @@ func runConfigWizard() error {
 		} else if _, statErr := os.Stat(dir); os.IsNotExist(statErr) {
 			warnings = append(warnings, fmt.Sprintf("repo-search-dir %s: directory does not exist", dir))
 			fmt.Printf("  repo-search-dir: %s (warning: does not exist)\n", dir)
+		} else if len(repos) == 0 {
+			warnings = append(warnings, fmt.Sprintf("repo-search-dir %s: no git repositories found", dir))
+			fmt.Printf("  repo-search-dir: %s (warning: no git repositories found)\n", dir)
 		} else {
 			fmt.Printf("  repo-search-dir: %s (%d repos found)\n", dir, len(repos))
 		}
@@ -173,6 +182,7 @@ func runConfigWizard() error {
 		return fmt.Errorf("save config: %w", err)
 	}
 
-	fmt.Println("Configuration saved.")
+	path, _ := config.ConfigFilePath()
+	fmt.Printf("Configuration saved to %s\n", path)
 	return nil
 }
