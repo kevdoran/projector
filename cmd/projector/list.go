@@ -14,10 +14,11 @@ import (
 
 func newListCmd() *cobra.Command {
 	var verbose bool
+	var all bool
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all projects",
+		Short: "List projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadConfig()
 			if err != nil {
@@ -29,8 +30,23 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("list projects: %w", err)
 			}
 
+			// Filter to active-only unless --all is set.
+			if !all {
+				filtered := projects[:0]
+				for _, p := range projects {
+					if p.Project.Status == project.StatusActive {
+						filtered = append(filtered, p)
+					}
+				}
+				projects = filtered
+			}
+
 			if len(projects) == 0 {
-				fmt.Println("No projects found. Run 'pj project create <name>' to create one.")
+				if all {
+					fmt.Println("No projects found. Run 'pj project create <name>' to create one.")
+				} else {
+					fmt.Println("No active projects. Use --all to include archived projects.")
+				}
 				return nil
 			}
 
@@ -86,6 +102,7 @@ func newListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Show repo names")
+	cmd.Flags().BoolVarP(&all, "all", "a", false, "Include archived projects")
 	return cmd
 }
 

@@ -185,14 +185,23 @@ Local dev builds (without ldflags) show `dev` / `unknown` for the injected field
 
 #### `pj project list`
 
-List all projects.
+List projects. By default only active projects are shown.
 
 ```
 pj project list
 pj project list --verbose    # also shows repo names
+pj project list --all        # include archived projects
 ```
 
 Example output:
+
+```
+PROJECT    STATUS    CREATED       REPOS
+foo        active    2 days ago    4
+bar        active    3 weeks ago   2
+```
+
+With `--all`:
 
 ```
 PROJECT    STATUS    CREATED       REPOS
