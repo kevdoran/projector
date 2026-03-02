@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/huh"
 
-	"github.com/kevdoran/projector/internal/config"
 	"github.com/kevdoran/projector/internal/repo"
 )
 
@@ -117,54 +116,9 @@ func SelectEditor(options []EditorOption) (string, error) {
 	return selected, nil
 }
 
-// InitConfig runs an interactive first-time setup form and returns a populated GlobalConfig.
-func InitConfig() (*config.GlobalConfig, error) {
-	var projectsDir string
-	var repoSearchDirsRaw string
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().
-				Title("Projects directory").
-				Description("Absolute path where project directories will be created (e.g. ~/projects)").
-				Value(&projectsDir).
-				Validate(func(s string) error {
-					if strings.TrimSpace(s) == "" {
-						return fmt.Errorf("projects directory is required")
-					}
-					return nil
-				}),
-
-			huh.NewInput().
-				Title("Repository search directories (optional)").
-				Description("Comma-separated list of directories to search for git repositories").
-				Value(&repoSearchDirsRaw),
-		),
-	)
-
-	if err := form.Run(); err != nil {
-		return nil, fmt.Errorf("first-time setup: %w", err)
-	}
-
-	cfg := &config.GlobalConfig{
-		ProjectsDir: expandHome(projectsDir),
-	}
-
-	if repoSearchDirsRaw != "" {
-		for _, d := range strings.Split(repoSearchDirsRaw, ",") {
-			d = strings.TrimSpace(d)
-			if d != "" {
-				cfg.RepoSearchDirs = append(cfg.RepoSearchDirs, expandHome(d))
-			}
-		}
-	}
-
-	return cfg, nil
-}
-
-// expandHome replaces a leading ~/ (or bare ~) with the user's home directory.
+// ExpandHome replaces a leading ~/ (or bare ~) with the user's home directory.
 // Paths like ~word are left unchanged to avoid silent corruption.
-func expandHome(path string) string {
+func ExpandHome(path string) string {
 	path = strings.TrimSpace(path)
 	switch {
 	case path == "~":

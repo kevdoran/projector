@@ -12,7 +12,7 @@ func newPathCmd() *cobra.Command {
 		Short: "Print the absolute path to a project directory",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}

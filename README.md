@@ -35,16 +35,20 @@ mv pj /usr/local/bin/pj
 
 ### Quick Start
 
-```
-$ pj project create my-feature
+```bash
+# First-time setup — configure projects directory and repo search paths
+$ pj config setup
 
   Projects directory
   > ~/projects
 
-  Repository search directories (optional)
+  Repository search directories
   > ~/repos/work,~/repos/personal
 
-  Configuration saved to ~/.projector/projector-config.toml
+  Configuration saved.
+
+# Create a project with worktrees across your repos
+$ pj project create my-feature
 
   Select repositories to include in this project
   > [x] api
@@ -74,14 +78,14 @@ $ pj project open my-feature
   Opening my-feature in Cursor...
 ```
 
-On subsequent runs, first-time setup is skipped and the editor choice is remembered.
-
 ### First-time Setup
 
-On first run, `pj` will guide you through interactive setup to configure:
+Run `pj config setup` to configure:
 
 - **Projects directory** — where project directories will be created (e.g. `~/projects`)
 - **Repository search directories** — directories to scan for git repositories (e.g. `~/repos/work,~/repos/personal`)
+
+If you run any project command before configuring, `pj` will prompt you to run `pj config setup` first.
 
 Configuration is saved to `~/.projector/projector-config.toml`.
 
@@ -103,6 +107,56 @@ default-base = "origin/develop"
 ```
 
 ### Commands
+
+#### `pj config setup`
+
+Interactive configuration wizard. Sets up or reconfigures global settings (projects directory, repo search directories). Re-running updates existing configuration — previous values are pre-populated in the form.
+
+```bash
+pj config setup
+```
+
+#### `pj config list`
+
+Display current configuration in flattened dot-notation format.
+
+```bash
+pj config list
+```
+
+Example output:
+
+```
+projects-dir=/Users/alice/projects
+repo-search-dirs.0=/Users/alice/repos/work
+repo-search-dirs.1=/Users/alice/repos/personal
+editor=cursor
+repos.my-repo.default-base=origin/develop
+```
+
+#### `pj config get <key>`
+
+Get an individual configuration value.
+
+```bash
+pj config get projects-dir
+pj config get editor
+pj config get repo-search-dirs
+pj config get repos.my-repo.default-base
+```
+
+#### `pj config set <key> <value>`
+
+Set an individual configuration value.
+
+```bash
+pj config set projects-dir ~/new-projects
+pj config set editor cursor
+pj config set repo-search-dirs /path1,/path2         # replaces entire list
+pj config set --add repo-search-dirs /additional/path # appends to list
+pj config set --remove repo-search-dirs /old/path     # removes from list
+pj config set repos.my-repo.default-base origin/develop
+```
 
 #### `pj version`
 
@@ -377,7 +431,11 @@ Tests use `t.TempDir()` for isolation (auto-cleaned). Integration tests in `inte
 projector/
   cmd/projector/
     main.go          cobra root + subcommand wiring
-    projects.go      "projects" noun command
+    projects.go      "project" noun command
+    config.go        "config" noun command
+    config_run.go    interactive configuration wizard
+    config_list.go   display current configuration
+    config_set.go    set individual config values
     list.go
     create.go
     desc.go
@@ -390,7 +448,7 @@ projector/
     project/         ProjectConfig, Load/Save/ListAll/DiscoverWorktrees
     git/             RunGit and all git wrappers
     repo/            Discover, ResolveRepos
-    tui/             SelectRepos, InitConfig (charmbracelet/huh)
+    tui/             SelectRepos, SelectEditor, ExpandHome (charmbracelet/huh)
   go.mod
   CLAUDE.md          conventions and build/test commands for coding agents
   README.md

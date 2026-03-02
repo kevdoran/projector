@@ -32,7 +32,7 @@ func newCreateCmd() *cobra.Command {
 			name := args[0]
 			repoArgs := args[1:]
 
-			cfg, err := loadOrInitConfig()
+			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}
