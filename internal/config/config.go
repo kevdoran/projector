@@ -30,11 +30,19 @@ var ErrConfigVersionTooNew = errors.New("config file was written by a newer vers
 
 // GlobalConfig is the top-level structure for ~/.projector/projector-config.toml.
 type GlobalConfig struct {
-	ConfigVersion  int                   `toml:"config-version"`
-	ProjectsDir    string                `toml:"projects-dir"`
-	RepoSearchDirs []string              `toml:"repo-search-dirs"`
-	Editor         string                `toml:"editor,omitempty"`
-	Repos          map[string]RepoConfig `toml:"repos"`
+	ConfigVersion  int                      `toml:"config-version"`
+	ProjectsDir    string                   `toml:"projects-dir"`
+	RepoSearchDirs []string                 `toml:"repo-search-dirs"`
+	DefaultEditor  string                   `toml:"default-editor,omitempty"`
+	Editors        map[string]EditorConfig  `toml:"editors,omitempty"`
+	Repos          map[string]RepoConfig    `toml:"repos"`
+}
+
+// EditorConfig holds custom editor definitions stored under [editors.<name>].
+type EditorConfig struct {
+	Name     string `toml:"name,omitempty"`     // display name (defaults to key)
+	Command  string `toml:"command,omitempty"`   // executable (defaults to key)
+	Terminal bool   `toml:"terminal,omitempty"`  // if true, print cd+command instead of launching
 }
 
 // RepoConfig holds per-repository overrides stored under [repos.<name>].
@@ -83,14 +91,14 @@ func Load() (*GlobalConfig, error) {
 	return cfg, nil
 }
 
-const editorComment = `# editor: command used by "pj project open". Accepts any executable that takes
-# a directory path as its first positional argument (e.g. cursor, code, subl,
-# bbedit, idea, zed, finder). You can specify a custom command or script here
-# provided it follows the same convention.
+const editorComment = `# default-editor: editor command used by "pj project open" without prompting.
+# When set, skips the interactive editor selection. Accepts any executable that
+# takes a directory path as its first argument (e.g. cursor, code, subl, zed).
+# Remove or leave empty to be prompted each time.
 `
 
 // Save writes the config to disk, creating the config directory if needed.
-// When the editor field is set, an explanatory comment is inserted above it.
+// When the default-editor field is set, an explanatory comment is inserted above it.
 func Save(cfg *GlobalConfig) error {
 	path, err := ConfigFilePath()
 	if err != nil {
@@ -110,8 +118,8 @@ func Save(cfg *GlobalConfig) error {
 	}
 
 	content := buf.String()
-	if cfg.Editor != "" {
-		content = strings.Replace(content, "editor = ", editorComment+"editor = ", 1)
+	if cfg.DefaultEditor != "" {
+		content = strings.Replace(content, "default-editor = ", editorComment+"default-editor = ", 1)
 	}
 
 	f, err := os.Create(path)

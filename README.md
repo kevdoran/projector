@@ -66,12 +66,10 @@ $ pj project desc my-feature
 
 $ pj project open my-feature
 
-  Select an editor:
+  Choose an editor:
   > Cursor
     VS Code
     Zed
-
-  Opening my-feature in Cursor...
 ```
 
 ### First-time Setup
@@ -145,11 +143,23 @@ Set an individual configuration value.
 
 ```bash
 pj config set projects-dir ~/new-projects
-pj config set editor cursor
+pj config set default-editor cursor
 pj config set repo-search-dirs /path1,/path2            # replaces entire list
 pj config set --add repo-search-dirs /additional/path   # appends to list
 pj config set --remove repo-search-dirs /old/path       # removes from list
 pj config set repos.my-repo.default-base origin/develop
+pj config set editors.aider.command aider               # custom editor
+pj config set editors.aider.terminal true               # terminal-mode editor
+```
+
+#### `pj config unset <key>`
+
+Remove or clear an optional configuration value. Required keys (`projects-dir`, `repo-search-dirs`) cannot be unset.
+
+```bash
+pj config unset default-editor                   # clear default editor
+pj config unset editors.aider                     # remove a custom editor entry
+pj config unset repos.my-repo.default-base        # remove per-repo base override
 ```
 
 #### `pj version`
@@ -233,35 +243,73 @@ pj project create my-feature --detached --base origin/release-2.0
 
 #### `pj project open [project]`
 
-Open a project in your configured editor or IDE.
+Open a project in an editor or IDE.
 
 ```bash
 pj project open               # detect project from current directory
-pj project open my-feature
+pj project open my-feature    # prompts for editor each time
+pj project open my-feature -e cursor   # use specific editor, no prompt
 ```
 
-The first time this command is run (or when no editor is configured), an interactive prompt lets you choose from the supported options. Installed editors are annotated:
+By default, an interactive prompt shows all **installed** editors each time:
 
 ```
-? Choose a default editor for 'pj project open'
-  Cursor          (installed)
-  VS Code         (installed)
-  Zed             (not installed)
-  Sublime Text    (installed)
-  BBEdit          (not installed)
-  IntelliJ IDEA   (not installed)
-  Finder (macOS)  (installed)
+? Choose an editor
+> Cursor
+  VS Code
+  Windsurf
+  Zed
+  Claude Code
+  Finder (macOS)
 ```
 
-The choice is saved to `~/.projector/projector-config.toml`. You can change it there at any time, or set a completely custom command — any executable that accepts a directory path as its first positional argument works:
+To skip the prompt, set a default editor:
+
+```bash
+pj config set default-editor cursor
+```
+
+Or use the `-e` / `--editor` flag for one-off use:
+
+```bash
+pj project open my-feature -e code
+```
+
+**Terminal editors** — tools like Claude Code that run in the terminal print a `cd` + command instead of launching a GUI process:
+
+```
+$ pj project open my-feature -e claude
+To open in Claude Code, run:
+
+  cd /Users/alice/projects/my-feature && claude
+```
+
+**Custom editors** — define additional editors in the config file under `[editors.<name>]`:
 
 ```toml
-# editor: command used by "pj project open". Accepts any executable that takes
-# a directory path as its first positional argument (e.g. cursor, code, subl,
-# bbedit, idea, zed, finder). You can specify a custom command or script here
-# provided it follows the same convention.
-editor = "cursor"
+# default-editor: editor command used by "pj project open" without prompting.
+# When set, skips the interactive editor selection. Accepts any executable that
+# takes a directory path as its first argument (e.g. cursor, code, subl, zed).
+# Remove or leave empty to be prompted each time.
+default-editor = "cursor"
+
+[editors.myeditor]
+name = "My Custom Editor"
+command = "myedit"
+
+[editors.aider]
+name = "Aider"
+command = "aider"
+terminal = true
 ```
+
+Custom editors appear in the selection prompt if their command is found on PATH. Setting `terminal = true` causes `pj` to print a `cd` + command instead of launching.
+
+**CLI launcher setup** — some editors require setup to be launchable from the command line:
+
+- **IntelliJ IDEA**: Tools → Create Command-line Launcher (creates the `idea` command)
+- **VS Code**: install the `code` command from the Command Palette (Shell Command: Install)
+- **Cursor**: install the `cursor` command from the Command Palette
 
 #### `pj project path [project]`
 
@@ -436,7 +484,7 @@ projector/
     restore.go
     resolve.go       shared resolveProject helper
   internal/
-    config/          GlobalConfig, Load/Save/ResolveBase
+    config/          GlobalConfig, EditorConfig, Load/Save/ResolveBase
     project/         ProjectConfig, Load/Save/ListAll/DiscoverWorktrees
     git/             RunGit and all git wrappers
     repo/            Discover, ResolveRepos
