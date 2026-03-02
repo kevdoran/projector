@@ -31,8 +31,29 @@ func newConfigListCmd() *cobra.Command {
 				fmt.Printf("repo-search-dirs.%d=%s\n", i, dir)
 			}
 
-			if cfg.Editor != "" {
-				fmt.Printf("editor=%s\n", cfg.Editor)
+			if cfg.DefaultEditor != "" {
+				fmt.Printf("default-editor=%s\n", cfg.DefaultEditor)
+			}
+
+			if len(cfg.Editors) > 0 {
+				editorNames := make([]string, 0, len(cfg.Editors))
+				for name := range cfg.Editors {
+					editorNames = append(editorNames, name)
+				}
+				sort.Strings(editorNames)
+
+				for _, name := range editorNames {
+					ec := cfg.Editors[name]
+					if ec.Name != "" {
+						fmt.Printf("editors.%s.name=%s\n", name, ec.Name)
+					}
+					if ec.Command != "" {
+						fmt.Printf("editors.%s.command=%s\n", name, ec.Command)
+					}
+					if ec.Terminal {
+						fmt.Printf("editors.%s.terminal=true\n", name)
+					}
+				}
 			}
 
 			if len(cfg.Repos) > 0 {

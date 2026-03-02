@@ -84,7 +84,8 @@ func runConfigWizard() error {
 
 	// Preserve existing fields not covered by the wizard.
 	if existing != nil {
-		cfg.Editor = existing.Editor
+		cfg.DefaultEditor = existing.DefaultEditor
+		cfg.Editors = existing.Editors
 		cfg.Repos = existing.Repos
 	}
 

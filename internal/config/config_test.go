@@ -31,6 +31,10 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 	cfg := &config.GlobalConfig{
 		ProjectsDir:    "/tmp/projects",
 		RepoSearchDirs: []string{"/tmp/repos1", "/tmp/repos2"},
+		DefaultEditor:  "cursor",
+		Editors: map[string]config.EditorConfig{
+			"myeditor": {Name: "My Editor", Command: "myedit", Terminal: true},
+		},
 		Repos: map[string]config.RepoConfig{
 			"my-repo": {DefaultBase: "origin/develop"},
 		},
@@ -51,11 +55,50 @@ func TestSave_And_Load_RoundTrip(t *testing.T) {
 	if len(loaded.RepoSearchDirs) != 2 {
 		t.Errorf("RepoSearchDirs len: got %d, want 2", len(loaded.RepoSearchDirs))
 	}
+	if loaded.DefaultEditor != "cursor" {
+		t.Errorf("DefaultEditor: got %q, want %q", loaded.DefaultEditor, "cursor")
+	}
+	if loaded.Editors["myeditor"].Name != "My Editor" {
+		t.Errorf("Editors[myeditor].Name: got %q", loaded.Editors["myeditor"].Name)
+	}
+	if loaded.Editors["myeditor"].Command != "myedit" {
+		t.Errorf("Editors[myeditor].Command: got %q", loaded.Editors["myeditor"].Command)
+	}
+	if !loaded.Editors["myeditor"].Terminal {
+		t.Error("Editors[myeditor].Terminal: got false, want true")
+	}
 	if loaded.Repos["my-repo"].DefaultBase != "origin/develop" {
 		t.Errorf("Repos[my-repo].DefaultBase: got %q", loaded.Repos["my-repo"].DefaultBase)
 	}
 	if loaded.ConfigVersion != config.CurrentConfigVersion {
 		t.Errorf("ConfigVersion: got %d, want %d", loaded.ConfigVersion, config.CurrentConfigVersion)
+	}
+}
+
+func TestLoad_IgnoresOldEditorField(t *testing.T) {
+	home := withTempHome(t)
+	cfgDir := filepath.Join(home, ".projector")
+	if err := os.MkdirAll(cfgDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate an old config file with the deprecated "editor" field.
+	content := `config-version = 1
+projects-dir = "/tmp/projects"
+editor = "code"
+`
+	if err := os.WriteFile(filepath.Join(cfgDir, "projector-config.toml"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	// The old editor field should be silently ignored; DefaultEditor should be empty.
+	if loaded.DefaultEditor != "" {
+		t.Errorf("DefaultEditor should be empty for old config, got %q", loaded.DefaultEditor)
+	}
+	if loaded.ProjectsDir != "/tmp/projects" {
+		t.Errorf("ProjectsDir: got %q", loaded.ProjectsDir)
 	}
 }
 

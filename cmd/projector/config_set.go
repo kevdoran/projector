@@ -22,10 +22,13 @@ func newConfigSetCmd() *cobra.Command {
 		Long: `Set an individual configuration key-value pair.
 
 Supported keys:
-  projects-dir                   Path where project directories are created
-  repo-search-dirs               Comma-separated list of repo search directories
-  editor                         Editor command for 'pj project open'
-  repos.<name>.default-base      Per-repo default branch base
+  projects-dir                     Path where project directories are created
+  repo-search-dirs                 Comma-separated list of repo search directories
+  default-editor                   Default editor command for 'pj project open'
+  editors.<name>.name              Display name for a custom editor
+  editors.<name>.command           Executable command for a custom editor
+  editors.<name>.terminal          "true"/"false" — print cd+command instead of launching
+  repos.<name>.default-base        Per-repo default branch base
 
 Flags --add and --remove can be used with repo-search-dirs to append or remove
 a single entry instead of replacing the entire list.`,
@@ -88,9 +91,35 @@ a single entry instead of replacing the entire list.`,
 					fmt.Printf("Set repo-search-dirs = %s\n", strings.Join(dirs, ", "))
 				}
 
-			case key == "editor":
-				cfg.Editor = value
-				fmt.Printf("Set editor = %s\n", cfg.Editor)
+			case key == "default-editor":
+				cfg.DefaultEditor = value
+				fmt.Printf("Set default-editor = %s\n", cfg.DefaultEditor)
+
+			case strings.HasPrefix(key, "editors."):
+				// editors.<name>.name, editors.<name>.command, editors.<name>.terminal
+				trimmed := strings.TrimPrefix(key, "editors.")
+				parts := strings.SplitN(trimmed, ".", 2)
+				if len(parts) != 2 || parts[0] == "" {
+					return fmt.Errorf("invalid key %q; expected editors.<name>.<field>", key)
+				}
+				editorName := parts[0]
+				field := parts[1]
+				if cfg.Editors == nil {
+					cfg.Editors = make(map[string]config.EditorConfig)
+				}
+				ec := cfg.Editors[editorName]
+				switch field {
+				case "name":
+					ec.Name = value
+				case "command":
+					ec.Command = value
+				case "terminal":
+					ec.Terminal = value == "true"
+				default:
+					return fmt.Errorf("unknown editor field %q; valid fields: name, command, terminal", field)
+				}
+				cfg.Editors[editorName] = ec
+				fmt.Printf("Set %s = %s\n", key, value)
 
 			case strings.HasPrefix(key, "repos.") && strings.HasSuffix(key, ".default-base"):
 				// Extract repo name from repos.<name>.default-base
@@ -106,7 +135,7 @@ a single entry instead of replacing the entire list.`,
 				fmt.Printf("Set repos.%s.default-base = %s\n", trimmed, value)
 
 			default:
-				return fmt.Errorf("unknown key %q; valid keys: projects-dir, repo-search-dirs, editor, repos.<name>.default-base", key)
+				return fmt.Errorf("unknown key %q; valid keys: projects-dir, repo-search-dirs, default-editor, editors.<name>.<field>, repos.<name>.default-base", key)
 			}
 
 			if err := config.Save(cfg); err != nil {

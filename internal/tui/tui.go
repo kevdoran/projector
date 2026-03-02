@@ -75,22 +75,21 @@ func SelectRepos(available []repo.Repo, exclude []string) ([]repo.Repo, error) {
 
 // EditorOption represents a selectable editor in the SelectEditor prompt.
 type EditorOption struct {
-	Name      string // display name, e.g. "Cursor"
-	Command   string // value stored in config, e.g. "cursor"
-	Installed bool   // whether the command was detected on PATH
+	Name     string // display name, e.g. "Cursor"
+	Command  string // value stored in config, e.g. "cursor"
+	Terminal bool   // if true, print cd+command instead of launching
 }
 
-// SelectEditor presents an interactive single-select prompt for choosing a default editor.
+// SelectEditor presents an interactive single-select prompt for choosing an editor.
+// Only editors that are available should be passed in (no install annotations).
 func SelectEditor(options []EditorOption) (string, error) {
+	if len(options) == 0 {
+		return "", fmt.Errorf("no editors available")
+	}
+
 	var huhOptions []huh.Option[string]
 	for _, o := range options {
-		label := o.Name
-		if o.Installed {
-			label += "  (installed)"
-		} else {
-			label += "  (not installed)"
-		}
-		huhOptions = append(huhOptions, huh.NewOption(label, o.Command))
+		huhOptions = append(huhOptions, huh.NewOption(o.Name, o.Command))
 	}
 
 	km := huh.NewDefaultKeyMap()
@@ -100,7 +99,7 @@ func SelectEditor(options []EditorOption) (string, error) {
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
-				Title("Choose a default editor for 'pj project open'").
+				Title("Choose an editor").
 				Description("Select with arrow keys, confirm with enter, esc to abort").
 				Options(huhOptions...).
 				Value(&selected),
