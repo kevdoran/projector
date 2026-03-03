@@ -115,7 +115,14 @@ a single entry instead of replacing the entire list.`,
 				case "command":
 					ec.Command = value
 				case "terminal":
-					ec.Terminal = value == "true"
+					switch value {
+					case "true":
+						ec.Terminal = true
+					case "false":
+						ec.Terminal = false
+					default:
+						return fmt.Errorf("invalid value %q for terminal; must be \"true\" or \"false\"", value)
+					}
 				default:
 					return fmt.Errorf("unknown editor field %q; valid fields: name, command, terminal", field)
 				}

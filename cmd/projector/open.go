@@ -162,7 +162,7 @@ func findEditor(editors []tui.EditorOption, command string) tui.EditorOption {
 // launchEditor opens projectDir in the specified editor.
 func launchEditor(editor tui.EditorOption, projectDir string) error {
 	if editor.Terminal {
-		fmt.Printf("To open in %s, run:\n\n  cd %s && %s\n", editor.Name, projectDir, editor.Command)
+		fmt.Printf("To open in %s, run:\n\n  cd %q && %s\n", editor.Name, projectDir, editor.Command)
 		return nil
 	}
 

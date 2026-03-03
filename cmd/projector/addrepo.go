@@ -278,35 +278,56 @@ func newAddRepoCmd() *cobra.Command {
 				}
 			}
 
-			// Phase 3: Create worktrees.
+			// Phase 3: Create worktrees, tracking for rollback on failure.
+			var created []struct {
+				repoPath     string
+				worktreePath string
+			}
+			rollback := func() {
+				for i := len(created) - 1; i >= 0; i-- {
+					c := created[i]
+					_ = git.WorktreeRemove(c.repoPath, c.worktreePath)
+					_ = os.RemoveAll(c.worktreePath)
+				}
+			}
+
 			for _, rr := range resolved {
 				worktreePath := filepath.Join(projectDir, rr.repo.Name+"+"+projectName)
 
 				if detached {
 					if err := git.WorktreeAddDetached(rr.repo.Path, worktreePath, rr.base); err != nil {
+						rollback()
 						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
 					}
 					fmt.Printf("  added worktree: %s (detached at %s)\n", worktreePath, rr.base)
 				} else if checkout {
 					branchName, err := git.BranchNameFromRef(rr.repo.Path, rr.base)
 					if err != nil {
+						rollback()
 						return fmt.Errorf("resolve branch name for %s: %w", rr.repo.Name, err)
 					}
 					if err := git.WorktreeAdd(rr.repo.Path, worktreePath, "", branchName, false); err != nil {
+						rollback()
 						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
 					}
 					fmt.Printf("  added worktree: %s (checkout: %s)\n", worktreePath, branchName)
 				} else {
 					branchName, err := git.AvailableBranchName(rr.repo.Path, projectName, now)
 					if err != nil {
+						rollback()
 						return fmt.Errorf("branch name for %s: %w", rr.repo.Name, err)
 					}
 
 					if err := git.WorktreeAdd(rr.repo.Path, worktreePath, rr.base, branchName, true); err != nil {
+						rollback()
 						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
 					}
 					fmt.Printf("  added worktree: %s (branch: %s)\n", worktreePath, branchName)
 				}
+				created = append(created, struct {
+					repoPath     string
+					worktreePath string
+				}{rr.repo.Path, worktreePath})
 			}
 
 			return nil
