@@ -30,6 +30,7 @@ func newAddRepoCmd() *cobra.Command {
 		Use:   "add-repo [repos...]",
 		Short: "Add one or more repositories to a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err

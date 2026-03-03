@@ -20,6 +20,7 @@ func newListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err

@@ -33,6 +33,7 @@ func newCreateCmd() *cobra.Command {
 		Short: "Create a new project",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			name := args[0]
 			repoArgs := args[1:]
 

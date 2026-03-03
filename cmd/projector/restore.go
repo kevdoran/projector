@@ -16,6 +16,7 @@ func newRestoreCmd() *cobra.Command {
 		Use:   "restore [project]",
 		Short: "Restore an archived project (recreates worktrees)",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err

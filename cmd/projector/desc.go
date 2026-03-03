@@ -19,6 +19,7 @@ func newDescCmd() *cobra.Command {
 		Short: "Show details for a project",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err

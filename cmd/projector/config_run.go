@@ -21,6 +21,7 @@ func newConfigSetupCmd() *cobra.Command {
 		Short: "Run interactive configuration wizard",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			return runConfigWizard()
 		},
 	}

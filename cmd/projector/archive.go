@@ -16,6 +16,7 @@ func newArchiveCmd() *cobra.Command {
 		Use:   "archive [project]",
 		Short: "Archive an active project (removes worktrees, keeps branch)",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err
