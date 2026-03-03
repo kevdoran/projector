@@ -239,12 +239,21 @@ pj project create my-feature --base HEAD
 
 **Branch base**: By default branches are created from `origin/main` → `HEAD` (configurable per-repo via `[repos.<name>]` in the config file). Use `--base <ref>` to specify any git ref explicitly. When `--from` is used without `--base`, each repo branches from the corresponding worktree branch of the source project.
 
+**Checkout existing branch**: Use `--checkout` with `--base` to check out an existing branch instead of creating a new one. Git's DWIM behavior handles both local branches and remote-tracking branches (automatically creating a local tracking branch).
+
+```bash
+pj project create my-feature --checkout --base feature-branch
+pj project create my-feature --checkout --base origin/feature-branch
+```
+
 **Detached HEAD**: Use `--detached` to skip branch creation entirely. Worktrees are created in detached HEAD state, letting you decide later whether and what to name a branch. Works with all other flags (`--base`, `--from`, etc.).
 
 ```bash
 pj project create my-feature --detached
 pj project create my-feature --detached --base origin/release-2.0
 ```
+
+**Base ref validation**: When `--base` is specified, `pj` checks that the ref exists in each repository before creating worktrees. If the ref is missing from some repos, you're prompted to confirm whether to proceed with fallback bases for those repos. If the ref is missing from all repos, the command aborts with an error.
 
 **Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically runs `git fetch` for that remote before creating the worktree, so the branch is always created from an up-to-date ref.
 
@@ -344,6 +353,12 @@ pj project add-repo new-repo /abs/path/to/another-repo
 
 # Specify project explicitly (by name) and repos
 pj project add-repo my-feature new-repo
+
+# Branch from a specific ref
+pj project add-repo --base origin/develop new-repo
+
+# Check out an existing branch (requires --base)
+pj project add-repo --checkout --base feature-branch new-repo
 
 # Add repos in detached HEAD state (no branch created)
 pj project add-repo --detached new-repo

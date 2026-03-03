@@ -15,6 +15,7 @@ func newConfigListCmd() *cobra.Command {
 		Short: "Display current configuration",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := config.Load()
 			if err != nil {
 				if err == config.ErrNotFound {

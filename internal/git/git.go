@@ -92,6 +92,40 @@ func WorktreeList(repoPath string) (string, error) {
 	return out, nil
 }
 
+// WorktreeForBranch returns the worktree path that has the given branch checked out,
+// or "" if the branch is not checked out in any worktree. It parses the porcelain
+// output of `git worktree list`.
+func WorktreeForBranch(repoPath, branch string) (string, error) {
+	out, err := WorktreeList(repoPath)
+	if err != nil {
+		return "", err
+	}
+	target := "branch refs/heads/" + branch
+	var currentWorktree string
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "worktree ") {
+			currentWorktree = strings.TrimPrefix(line, "worktree ")
+		} else if line == target {
+			return currentWorktree, nil
+		} else if line == "" {
+			currentWorktree = ""
+		}
+	}
+	return "", nil
+}
+
+// BranchCheckedOut returns true if the given branch is already checked out in any
+// worktree of the repository. This is useful for pre-validation before --checkout,
+// since git does not allow the same branch to be checked out in multiple worktrees.
+func BranchCheckedOut(repoPath, branch string) (bool, error) {
+	path, err := WorktreeForBranch(repoPath, branch)
+	if err != nil {
+		return false, err
+	}
+	return path != "", nil
+}
+
 // StatusPorcelain returns whether a worktree is clean and any status lines.
 func StatusPorcelain(worktreeDir string) (clean bool, lines []string, err error) {
 	out, err := RunGit(worktreeDir, "status", "--porcelain")
@@ -226,6 +260,21 @@ func HasUnpushedCommits(repoPath, branch string) (bool, error) {
 		return false, fmt.Errorf("check unpushed commits: %w", err)
 	}
 	return strings.TrimSpace(out) != "", nil
+}
+
+// BranchNameFromRef extracts a local branch name from a ref string.
+// If the ref looks like a remote-tracking ref (e.g. "origin/feature"), it strips the
+// remote prefix. Otherwise the ref is returned as-is.
+// Examples: "origin/feature" → "feature", "upstream/main" → "main", "my-branch" → "my-branch".
+func BranchNameFromRef(repoPath, ref string) (string, error) {
+	remote, err := RemoteForRef(repoPath, ref)
+	if err != nil {
+		return "", fmt.Errorf("branch name from ref: %w", err)
+	}
+	if remote != "" {
+		return strings.TrimPrefix(ref, remote+"/"), nil
+	}
+	return ref, nil
 }
 
 // MinVersionCheck verifies the installed git is at least version 2.5 (first worktree support).

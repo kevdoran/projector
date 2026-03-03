@@ -34,6 +34,7 @@ Flags --add and --remove can be used with repo-search-dirs to append or remove
 a single entry instead of replacing the entire list.`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			key := args[0]
 			value := args[1]
 

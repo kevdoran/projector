@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/kevdoran/projector/internal/project"
 )
@@ -33,6 +35,21 @@ func resolveProject(projectsDir string, args []string) (string, *project.Project
 	}
 
 	return projectDir, p, nil
+}
+
+// projectNameFromWorktreePath extracts a pj project name from a worktree path
+// if the path is under projectsDir. Returns "-" if the path is not under projectsDir.
+func projectNameFromWorktreePath(projectsDir, worktreePath string) string {
+	rel, err := filepath.Rel(projectsDir, worktreePath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return "-"
+	}
+	// The first path component is the project name.
+	parts := strings.SplitN(rel, string(filepath.Separator), 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return "-"
+	}
+	return parts[0]
 }
 
 // printNoReposFound prints a helpful message when no git repositories are

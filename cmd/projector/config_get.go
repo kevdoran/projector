@@ -25,6 +25,7 @@ Supported keys:
   repos.<name>.default-base        Per-repo default branch base`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			key := args[0]
 
 			cfg, err := config.Load()

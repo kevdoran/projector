@@ -44,6 +44,7 @@ To always open with a specific editor without being prompted:
   pj config unset default-editor            (restore the prompt)`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -22,6 +25,7 @@ func newCreateCmd() *cobra.Command {
 		empty       bool
 		base        string
 		detached    bool
+		checkout    bool
 	)
 
 	cmd := &cobra.Command{
@@ -29,12 +33,21 @@ func newCreateCmd() *cobra.Command {
 		Short: "Create a new project",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			name := args[0]
 			repoArgs := args[1:]
 
 			cfg, err := loadConfig()
 			if err != nil {
 				return err
+			}
+
+			// Validate flag combinations
+			if checkout && detached {
+				return fmt.Errorf("--checkout and --detached are mutually exclusive")
+			}
+			if checkout && base == "" {
+				return fmt.Errorf("--checkout requires --base to specify which branch to check out")
 			}
 
 			// Validate project name
@@ -88,7 +101,7 @@ func newCreateCmd() *cobra.Command {
 					printNoReposFound(cfg.RepoSearchDirs)
 					return nil
 				}
-				repos, err = tui.SelectRepos(discovered, nil)
+				repos, err = tui.SelectRepos(discovered, nil, "use --empty to create an empty project")
 				if err != nil {
 					if errors.Is(err, tui.ErrAborted) {
 						fmt.Println("Aborted.")
@@ -119,16 +132,23 @@ func newCreateCmd() *cobra.Command {
 				_ = os.RemoveAll(projectDir)
 			}
 
+			// Phase 1: Resolve base refs for each repo and fetch remotes.
+			type resolvedRepo struct {
+				repo             repo.Repo
+				base             string
+				refFound         bool   // whether the explicit --base ref was found
+				branchInUse      bool   // whether the checkout branch is already checked out in a worktree
+				conflictWorktree string // path of the worktree that has the branch checked out
+			}
+			resolved := make([]resolvedRepo, 0, len(repos))
+
 			for _, r := range repos {
-				// Determine base ref for this repo.
 				var repoBase string
 				switch {
 				case base != "":
-					// Explicit --base: use it for every repo.
 					repoBase = base
 
 				case fromProject != "":
-					// --from with no --base: inherit the source project's worktree branch.
 					srcDir := project.ProjectDir(cfg.ProjectsDir, fromProject)
 					worktrees, err := project.DiscoverWorktrees(srcDir)
 					if err == nil {
@@ -165,34 +185,158 @@ func newCreateCmd() *cobra.Command {
 					}
 				}
 
-				worktreePath := filepath.Join(projectDir, r.Name+"+"+name)
-
-				if detached {
-					if err := git.WorktreeAddDetached(r.Path, worktreePath, repoBase); err != nil {
-						rollback()
-						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
-					}
-					created = append(created, struct {
-						repoPath     string
-						worktreePath string
-					}{r.Path, worktreePath})
-					fmt.Printf("  created worktree: %s (detached at %s)\n", worktreePath, repoBase)
-				} else {
-					// Find available branch name
-					branchName, err := git.AvailableBranchName(r.Path, name, now)
+				// Check if the explicit --base ref exists in this repo.
+				refFound := true
+				if base != "" {
+					exists, err := git.RefExists(r.Path, repoBase)
 					if err != nil {
 						rollback()
-						return fmt.Errorf("branch name for %s: %w", r.Name, err)
+						return fmt.Errorf("check ref for %s: %w", r.Name, err)
+					}
+					refFound = exists
+				}
+
+				// Check if the branch is already checked out in another worktree.
+				branchInUse := false
+				conflictWorktree := ""
+				if checkout && refFound {
+					branchName, err := git.BranchNameFromRef(r.Path, repoBase)
+					if err != nil {
+						rollback()
+						return fmt.Errorf("resolve branch name for %s: %w", r.Name, err)
+					}
+					wtPath, err := git.WorktreeForBranch(r.Path, branchName)
+					if err != nil {
+						rollback()
+						return fmt.Errorf("check worktrees for %s: %w", r.Name, err)
+					}
+					branchInUse = wtPath != ""
+					conflictWorktree = wtPath
+				}
+
+				resolved = append(resolved, resolvedRepo{repo: r, base: repoBase, refFound: refFound, branchInUse: branchInUse, conflictWorktree: conflictWorktree})
+			}
+
+			// Phase 2: Pre-validate base ref across repos when --base is set.
+			if base != "" && len(resolved) > 0 {
+				var found, missing []resolvedRepo
+				for _, rr := range resolved {
+					if rr.refFound {
+						found = append(found, rr)
+					} else {
+						missing = append(missing, rr)
+					}
+				}
+
+				if len(found) == 0 {
+					// None have the ref — abort.
+					rollback()
+					return fmt.Errorf("base %q was not found in any of the selected repositories", base)
+				}
+
+				if len(missing) > 0 {
+					// Some repos missing the ref — prompt for confirmation.
+					fmt.Fprintf(os.Stderr, "Warning: base %q not found in all repositories:\n", base)
+					for _, rr := range resolved {
+						if rr.refFound {
+							fmt.Fprintf(os.Stderr, "  %s: found\n", rr.repo.Name)
+						} else {
+							fallback, _ := config.ResolveBase(cfg, rr.repo.Name, rr.repo.Path)
+							fmt.Fprintf(os.Stderr, "  %s: not found (will use %s)\n", rr.repo.Name, fallback)
+						}
+					}
+					fmt.Fprint(os.Stderr, "\nProceed? [y/N]: ")
+					reader := bufio.NewReader(os.Stdin)
+					response, _ := reader.ReadString('\n')
+					if strings.ToLower(strings.TrimSpace(response)) != "y" {
+						rollback()
+						fmt.Fprintln(os.Stderr, "Aborted. You can add repos individually with: pj project add-repo")
+						return nil
 					}
 
-					if err := git.WorktreeAdd(r.Path, worktreePath, repoBase, branchName, true); err != nil {
+					// Apply fallback bases for repos that are missing the ref.
+					for i := range resolved {
+						if !resolved[i].refFound {
+							fallback, _ := config.ResolveBase(cfg, resolved[i].repo.Name, resolved[i].repo.Path)
+							resolved[i].base = fallback
+						}
+					}
+				}
+			}
+
+			// Check for branches already checked out in existing worktrees.
+			if checkout {
+				var conflicts []resolvedRepo
+				for _, rr := range resolved {
+					if rr.branchInUse {
+						conflicts = append(conflicts, rr)
+					}
+				}
+				if len(conflicts) > 0 {
+					rollback()
+					var buf strings.Builder
+					buf.WriteString("cannot checkout: branch is already checked out in an existing worktree:\n\n")
+					tw := tabwriter.NewWriter(&buf, 2, 0, 3, ' ', 0)
+					fmt.Fprintln(tw, "  PROJECT\tREPO\tBRANCH\tREMOTE REF\tWORKTREE")
+					for _, rr := range conflicts {
+						branchName, _ := git.BranchNameFromRef(rr.repo.Path, rr.base)
+						remoteRef := "-"
+						if branchName != rr.base {
+							remoteRef = rr.base
+						}
+						proj := projectNameFromWorktreePath(cfg.ProjectsDir, rr.conflictWorktree)
+						fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\t%s\n", proj, rr.repo.Name, branchName, remoteRef, rr.conflictWorktree)
+					}
+					tw.Flush()
+					buf.WriteString("\nRetry without --checkout to create new branches, or use --detached to use detached HEAD state.")
+					return fmt.Errorf("%s", buf.String())
+				}
+			}
+
+			// Phase 3: Create worktrees.
+			for _, rr := range resolved {
+				worktreePath := filepath.Join(projectDir, rr.repo.Name+"+"+name)
+
+				if detached {
+					if err := git.WorktreeAddDetached(rr.repo.Path, worktreePath, rr.base); err != nil {
 						rollback()
-						return fmt.Errorf("add worktree for %s: %w", r.Name, err)
+						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
 					}
 					created = append(created, struct {
 						repoPath     string
 						worktreePath string
-					}{r.Path, worktreePath})
+					}{rr.repo.Path, worktreePath})
+					fmt.Printf("  created worktree: %s (detached at %s)\n", worktreePath, rr.base)
+				} else if checkout {
+					branchName, err := git.BranchNameFromRef(rr.repo.Path, rr.base)
+					if err != nil {
+						rollback()
+						return fmt.Errorf("resolve branch name for %s: %w", rr.repo.Name, err)
+					}
+					if err := git.WorktreeAdd(rr.repo.Path, worktreePath, "", branchName, false); err != nil {
+						rollback()
+						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
+					}
+					created = append(created, struct {
+						repoPath     string
+						worktreePath string
+					}{rr.repo.Path, worktreePath})
+					fmt.Printf("  created worktree: %s (checkout: %s)\n", worktreePath, branchName)
+				} else {
+					branchName, err := git.AvailableBranchName(rr.repo.Path, name, now)
+					if err != nil {
+						rollback()
+						return fmt.Errorf("branch name for %s: %w", rr.repo.Name, err)
+					}
+
+					if err := git.WorktreeAdd(rr.repo.Path, worktreePath, rr.base, branchName, true); err != nil {
+						rollback()
+						return fmt.Errorf("add worktree for %s: %w", rr.repo.Name, err)
+					}
+					created = append(created, struct {
+						repoPath     string
+						worktreePath string
+					}{rr.repo.Path, worktreePath})
 					fmt.Printf("  created worktree: %s (branch: %s)\n", worktreePath, branchName)
 				}
 			}
@@ -219,6 +363,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&empty, "empty", false, "Create an empty project with no repos")
 	cmd.Flags().StringVar(&base, "base", "", "Git ref to branch from (branch, tag, SHA, or remote ref such as origin/main); remote refs are fetched automatically")
 	cmd.Flags().BoolVar(&detached, "detached", false, "Create worktrees in detached HEAD state (no branch)")
+	cmd.Flags().BoolVar(&checkout, "checkout", false, "Check out an existing branch instead of creating a new one (requires --base)")
 
 	return cmd
 }

@@ -19,7 +19,9 @@ var ErrAborted = errors.New("aborted")
 
 // SelectRepos presents an interactive multi-select form for choosing repositories.
 // available is the full list of discovered repos; exclude contains repo names to omit.
-func SelectRepos(available []repo.Repo, exclude []string) ([]repo.Repo, error) {
+// emptyHint, if non-empty, is appended to the validation error when no repos are selected
+// (e.g. "use --empty to create an empty project").
+func SelectRepos(available []repo.Repo, exclude []string, emptyHint string) ([]repo.Repo, error) {
 	if len(available) == 0 {
 		return nil, fmt.Errorf("no repositories available to select")
 	}
@@ -47,13 +49,29 @@ func SelectRepos(available []repo.Repo, exclude []string) ([]repo.Repo, error) {
 	km.Quit = key.NewBinding(key.WithKeys("ctrl+c", "esc"))
 
 	var selected []string
+	submitted := false
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewMultiSelect[string]().
 				Title("Select repositories to include in this project").
 				Description("Use space to toggle, enter to confirm, esc to abort").
 				Options(options...).
-				Value(&selected),
+				Value(&selected).
+				Validate(func(s []string) error {
+					if !submitted {
+						// huh runs validation eagerly on focus/navigation;
+						// defer the empty-selection check until the first submit.
+						submitted = true
+						return nil
+					}
+					if len(s) == 0 {
+						if emptyHint != "" {
+							return fmt.Errorf("select at least one repository; %s", emptyHint)
+						}
+						return fmt.Errorf("select at least one repository")
+					}
+					return nil
+				}),
 		),
 	).WithKeyMap(km)
 

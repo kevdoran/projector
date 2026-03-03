@@ -25,6 +25,7 @@ func newDeleteCmd() *cobra.Command {
 		Short: "Permanently delete a project and its worktrees",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
 			cfg, err := loadConfig()
 			if err != nil {
 				return err
