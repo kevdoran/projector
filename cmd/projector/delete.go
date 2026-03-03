@@ -119,14 +119,43 @@ func newDeleteCmd() *cobra.Command {
 				}
 			}
 
-			// Confirmation prompt.
+			// Confirmation prompt with preview of actions.
 			if !yes {
-				fmt.Fprintf(os.Stderr, "About to permanently delete project %q (%d worktree(s))", p.Project.Name, len(worktrees))
-				if deleteBranches {
-					fmt.Fprintf(os.Stderr, " and delete its branches")
+				fmt.Fprintln(os.Stderr, "The following actions will be performed:")
+				fmt.Fprintln(os.Stderr)
+				if len(worktrees) == 0 {
+					fmt.Fprintln(os.Stderr, "  (no git worktrees to clean up)")
+				} else {
+					for _, wt := range worktrees {
+						fmt.Fprintf(os.Stderr, "  %s:\n", wt.repoName)
+						hasAction := false
+						if p.Project.Status == project.StatusActive {
+							fmt.Fprintf(os.Stderr, "    git worktree remove %s\n", wt.worktreePath)
+							hasAction = true
+						}
+						if deleteBranches {
+							fmt.Fprintf(os.Stderr, "    git branch -D %s  (in %s)\n", wt.branch, wt.repoPath)
+							hasAction = true
+						}
+						if !hasAction {
+							fmt.Fprintln(os.Stderr, "    (nothing to do)")
+						}
+					}
 				}
-				fmt.Fprintln(os.Stderr, ".")
-				fmt.Fprint(os.Stderr, "This cannot be undone. Proceed? [y/N]: ")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintf(os.Stderr, "  rm -rf %s\n", projectDir)
+				fmt.Fprintln(os.Stderr)
+
+				fmt.Fprintln(os.Stderr, "Alternatives:")
+				fmt.Fprintf(os.Stderr, "  - To archive (reversible): pj project archive %s\n", p.Project.Name)
+				if deleteBranches {
+					fmt.Fprintln(os.Stderr, "  - To clean up manually, remove the worktrees and branches listed above")
+				} else {
+					fmt.Fprintln(os.Stderr, "  - To clean up manually, remove the worktrees and directory listed above")
+				}
+				fmt.Fprintln(os.Stderr)
+
+				fmt.Fprint(os.Stderr, "Proceed? [y/N]: ")
 				reader := bufio.NewReader(os.Stdin)
 				response, _ := reader.ReadString('\n')
 				if strings.ToLower(strings.TrimSpace(response)) != "y" {
@@ -138,6 +167,7 @@ func newDeleteCmd() *cobra.Command {
 			// Execute.
 			if p.Project.Status == project.StatusActive {
 				for _, wt := range worktrees {
+					fmt.Printf("  Removing worktree for %s (this may take a while)...\n", wt.repoName)
 					if err := git.WorktreeRemove(wt.repoPath, wt.worktreePath); err != nil {
 						return fmt.Errorf("remove worktree for %s: %w", wt.repoName, err)
 					}
@@ -146,13 +176,14 @@ func newDeleteCmd() *cobra.Command {
 
 			if deleteBranches {
 				for _, wt := range worktrees {
+					fmt.Printf("  Deleting branch %q in %s...\n", wt.branch, wt.repoName)
 					if _, err := git.RunGit(wt.repoPath, "branch", "-D", wt.branch); err != nil {
 						return fmt.Errorf("delete branch %q in %s: %w", wt.branch, wt.repoName, err)
 					}
-					fmt.Printf("  deleted branch %q in %s\n", wt.branch, wt.repoName)
 				}
 			}
 
+			fmt.Printf("  Removing project directory...\n")
 			if err := os.RemoveAll(projectDir); err != nil {
 				return fmt.Errorf("remove project dir: %w", err)
 			}
