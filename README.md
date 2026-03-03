@@ -413,7 +413,26 @@ pj project delete my-feature --delete-branches   # also delete git branches
 pj project delete my-feature --yes               # skip confirmation prompt
 ```
 
-A confirmation prompt is shown before any destructive action. Pass `-y` / `--yes` to skip it (useful in scripts).
+Before proceeding, the command previews the exact git commands it will run and suggests alternatives:
+
+```
+The following actions will be performed:
+
+  api:
+    git worktree remove /Users/alice/projects/my-feature/api+my-feature
+  frontend:
+    git worktree remove /Users/alice/projects/my-feature/frontend+my-feature
+
+  rm -rf /Users/alice/projects/my-feature
+
+Alternatives:
+  - To archive (reversible): pj project archive my-feature
+  - To clean up manually, remove the worktrees and directory listed above
+
+Proceed? [y/N]:
+```
+
+With `--delete-branches`, the preview also shows the branch deletion commands. Pass `-y` / `--yes` to skip the preview and prompt (useful in scripts); progress output still prints.
 
 **Safety checks** — the following will cause the command to refuse:
 - Any worktree has uncommitted changes or untracked files

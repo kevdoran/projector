@@ -72,6 +72,7 @@ func newArchiveCmd() *cobra.Command {
 			var removeErr error
 
 			for _, wt := range worktrees {
+				fmt.Printf("  Removing worktree for %s (this may take a while)...\n", wt.RepoName)
 				if err := git.WorktreeRemove(wt.RepoPath, wt.WorktreePath); err != nil {
 					removeErr = fmt.Errorf("remove worktree %s: %w", wt.RepoName, err)
 					break
@@ -81,7 +82,6 @@ func newArchiveCmd() *cobra.Command {
 					break
 				}
 				removed = append(removed, removedWorktree{wt})
-				fmt.Printf("  removed worktree: %s\n", wt.WorktreePath)
 			}
 
 			if removeErr != nil {
