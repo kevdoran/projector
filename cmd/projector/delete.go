@@ -106,6 +106,9 @@ func newDeleteCmd() *cobra.Command {
 
 			if deleteBranches && !force {
 				for _, wt := range worktrees {
+					if wt.branch == "" {
+						continue // detached worktrees have no branch to check
+					}
 					unpushed, err := git.HasUnpushedCommits(wt.repoPath, wt.branch)
 					if err != nil {
 						return fmt.Errorf("check unpushed commits for %s: %w", wt.repoName, err)
@@ -134,7 +137,7 @@ func newDeleteCmd() *cobra.Command {
 							fmt.Fprintf(os.Stderr, "    git worktree remove %s\n", wt.worktreePath)
 							hasAction = true
 						}
-						if deleteBranches {
+						if deleteBranches && wt.branch != "" {
 							fmt.Fprintf(os.Stderr, "    git branch -D %s  (in %s)\n", wt.branch, wt.repoPath)
 							hasAction = true
 						}
@@ -177,6 +180,9 @@ func newDeleteCmd() *cobra.Command {
 
 			if deleteBranches {
 				for _, wt := range worktrees {
+					if wt.branch == "" {
+						continue // detached worktrees have no branch to delete
+					}
 					fmt.Printf("  Deleting branch %q in %s...\n", wt.branch, wt.repoName)
 					if _, err := git.RunGit(wt.repoPath, "branch", "-D", wt.branch); err != nil {
 						return fmt.Errorf("delete branch %q in %s: %w", wt.branch, wt.repoName, err)

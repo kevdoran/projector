@@ -93,9 +93,20 @@ func newArchiveCmd() *cobra.Command {
 				var rollbackFailed []string
 				for _, r := range removed {
 					wt := r.wt
-					if err := git.WorktreeAdd(wt.RepoPath, wt.WorktreePath, "", wt.Branch, false); err != nil {
+					var rollbackErr error
+					if wt.Branch == "" {
+						// Detached worktree: restore at the captured HEAD SHA.
+						commitish := detachedSHAs[wt.WorktreePath]
+						if commitish == "" {
+							commitish = "HEAD"
+						}
+						rollbackErr = git.WorktreeAddDetached(wt.RepoPath, wt.WorktreePath, commitish)
+					} else {
+						rollbackErr = git.WorktreeAdd(wt.RepoPath, wt.WorktreePath, "", wt.Branch, false)
+					}
+					if rollbackErr != nil {
 						rollbackFailed = append(rollbackFailed, wt.RepoName)
-						fmt.Fprintf(os.Stderr, "  rollback failed for %s: %v\n", wt.RepoName, err)
+						fmt.Fprintf(os.Stderr, "  rollback failed for %s: %v\n", wt.RepoName, rollbackErr)
 					} else {
 						fmt.Fprintf(os.Stderr, "  restored: %s\n", wt.RepoName)
 					}
