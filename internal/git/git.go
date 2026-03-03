@@ -228,6 +228,21 @@ func HasUnpushedCommits(repoPath, branch string) (bool, error) {
 	return strings.TrimSpace(out) != "", nil
 }
 
+// BranchNameFromRef extracts a local branch name from a ref string.
+// If the ref looks like a remote-tracking ref (e.g. "origin/feature"), it strips the
+// remote prefix. Otherwise the ref is returned as-is.
+// Examples: "origin/feature" → "feature", "upstream/main" → "main", "my-branch" → "my-branch".
+func BranchNameFromRef(repoPath, ref string) (string, error) {
+	remote, err := RemoteForRef(repoPath, ref)
+	if err != nil {
+		return "", fmt.Errorf("branch name from ref: %w", err)
+	}
+	if remote != "" {
+		return strings.TrimPrefix(ref, remote+"/"), nil
+	}
+	return ref, nil
+}
+
 // MinVersionCheck verifies the installed git is at least version 2.5 (first worktree support).
 func MinVersionCheck() error {
 	out, err := RunGit(".", "version")

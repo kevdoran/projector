@@ -319,6 +319,42 @@ func TestHeadSHA(t *testing.T) {
 	}
 }
 
+func TestBranchNameFromRef(t *testing.T) {
+	// Create an upstream repo and clone it so we have remote-tracking refs.
+	upstream := createTestRepo(t)
+	cloneDir := filepath.Join(t.TempDir(), "clone")
+	if _, err := git.RunGit(t.TempDir(), "clone", upstream, cloneDir); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+
+	defaultBranch, err := git.CurrentBranch(cloneDir)
+	if err != nil {
+		t.Fatalf("CurrentBranch: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		ref      string
+		expected string
+	}{
+		{"remote ref", "origin/" + defaultBranch, defaultBranch},
+		{"local ref", "my-branch", "my-branch"},
+		{"plain name", "feature-x", "feature-x"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := git.BranchNameFromRef(cloneDir, tc.ref)
+			if err != nil {
+				t.Fatalf("BranchNameFromRef(%q): %v", tc.ref, err)
+			}
+			if got != tc.expected {
+				t.Errorf("BranchNameFromRef(%q) = %q, want %q", tc.ref, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestMinVersionCheck(t *testing.T) {
 	if err := git.MinVersionCheck(); err != nil {
 		t.Fatalf("MinVersionCheck: %v", err)
