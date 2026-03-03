@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -142,9 +143,11 @@ func newAddRepoCmd() *cobra.Command {
 
 			// Phase 1: Resolve base refs, fetch remotes, and check ref existence.
 			type resolvedRepo struct {
-				repo     repo.Repo
-				base     string
-				refFound bool
+				repo             repo.Repo
+				base             string
+				refFound         bool
+				branchInUse      bool
+				conflictWorktree string
 			}
 			var resolved []resolvedRepo
 
@@ -185,7 +188,23 @@ func newAddRepoCmd() *cobra.Command {
 					refFound = exists
 				}
 
-				resolved = append(resolved, resolvedRepo{repo: r, base: repoBase, refFound: refFound})
+				// Check if the branch is already checked out in another worktree.
+				branchInUse := false
+				conflictWorktree := ""
+				if checkout && refFound {
+					branchName, err := git.BranchNameFromRef(r.Path, repoBase)
+					if err != nil {
+						return fmt.Errorf("resolve branch name for %s: %w", r.Name, err)
+					}
+					wtPath, err := git.WorktreeForBranch(r.Path, branchName)
+					if err != nil {
+						return fmt.Errorf("check worktrees for %s: %w", r.Name, err)
+					}
+					branchInUse = wtPath != ""
+					conflictWorktree = wtPath
+				}
+
+				resolved = append(resolved, resolvedRepo{repo: r, base: repoBase, refFound: refFound, branchInUse: branchInUse, conflictWorktree: conflictWorktree})
 			}
 
 			// Phase 2: Pre-validate base ref across repos when --base is set.
@@ -227,6 +246,34 @@ func newAddRepoCmd() *cobra.Command {
 							resolved[i].base = fallback
 						}
 					}
+				}
+			}
+
+			// Check for branches already checked out in existing worktrees.
+			if checkout {
+				var conflicts []resolvedRepo
+				for _, rr := range resolved {
+					if rr.branchInUse {
+						conflicts = append(conflicts, rr)
+					}
+				}
+				if len(conflicts) > 0 {
+					var buf strings.Builder
+					buf.WriteString("cannot checkout: branch is already checked out in an existing worktree:\n\n")
+					tw := tabwriter.NewWriter(&buf, 2, 0, 3, ' ', 0)
+					fmt.Fprintln(tw, "  PROJECT\tREPO\tBRANCH\tREMOTE REF\tWORKTREE")
+					for _, rr := range conflicts {
+						branchName, _ := git.BranchNameFromRef(rr.repo.Path, rr.base)
+						remoteRef := "-"
+						if branchName != rr.base {
+							remoteRef = rr.base
+						}
+						proj := projectNameFromWorktreePath(cfg.ProjectsDir, rr.conflictWorktree)
+						fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\t%s\n", proj, rr.repo.Name, branchName, remoteRef, rr.conflictWorktree)
+					}
+					tw.Flush()
+					buf.WriteString("\nRetry without --checkout to create new branches, or use --detached to use detached HEAD state.")
+					return fmt.Errorf("%s", buf.String())
 				}
 			}
 

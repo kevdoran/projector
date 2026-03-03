@@ -92,6 +92,40 @@ func WorktreeList(repoPath string) (string, error) {
 	return out, nil
 }
 
+// WorktreeForBranch returns the worktree path that has the given branch checked out,
+// or "" if the branch is not checked out in any worktree. It parses the porcelain
+// output of `git worktree list`.
+func WorktreeForBranch(repoPath, branch string) (string, error) {
+	out, err := WorktreeList(repoPath)
+	if err != nil {
+		return "", err
+	}
+	target := "branch refs/heads/" + branch
+	var currentWorktree string
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "worktree ") {
+			currentWorktree = strings.TrimPrefix(line, "worktree ")
+		} else if line == target {
+			return currentWorktree, nil
+		} else if line == "" {
+			currentWorktree = ""
+		}
+	}
+	return "", nil
+}
+
+// BranchCheckedOut returns true if the given branch is already checked out in any
+// worktree of the repository. This is useful for pre-validation before --checkout,
+// since git does not allow the same branch to be checked out in multiple worktrees.
+func BranchCheckedOut(repoPath, branch string) (bool, error) {
+	path, err := WorktreeForBranch(repoPath, branch)
+	if err != nil {
+		return false, err
+	}
+	return path != "", nil
+}
+
 // StatusPorcelain returns whether a worktree is clean and any status lines.
 func StatusPorcelain(worktreeDir string) (clean bool, lines []string, err error) {
 	out, err := RunGit(worktreeDir, "status", "--porcelain")

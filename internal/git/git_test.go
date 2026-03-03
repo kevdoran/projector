@@ -319,6 +319,120 @@ func TestHeadSHA(t *testing.T) {
 	}
 }
 
+func TestWorktreeForBranch(t *testing.T) {
+	repo := createTestRepo(t)
+
+	// Resolve symlinks so comparisons work on macOS (/var → /private/var).
+	repoReal, err := filepath.EvalSymlinks(repo)
+	if err != nil {
+		t.Fatalf("EvalSymlinks: %v", err)
+	}
+
+	// The default branch should be checked out in the main worktree (the repo dir itself).
+	branch, err := git.CurrentBranch(repo)
+	if err != nil {
+		t.Fatalf("CurrentBranch: %v", err)
+	}
+	wtPath, err := git.WorktreeForBranch(repo, branch)
+	if err != nil {
+		t.Fatalf("WorktreeForBranch: %v", err)
+	}
+	if wtPath != repoReal {
+		t.Fatalf("expected worktree path %q, got %q", repoReal, wtPath)
+	}
+
+	// A branch that doesn't exist should return empty string.
+	wtPath, err = git.WorktreeForBranch(repo, "nonexistent-branch")
+	if err != nil {
+		t.Fatalf("WorktreeForBranch: %v", err)
+	}
+	if wtPath != "" {
+		t.Fatalf("expected empty path for nonexistent branch, got %q", wtPath)
+	}
+
+	// Create a new branch in a worktree and verify the path is returned.
+	newWt := filepath.Join(t.TempDir(), "wt-for-branch")
+	newWtReal, err := filepath.EvalSymlinks(filepath.Dir(newWt))
+	if err != nil {
+		t.Fatalf("EvalSymlinks: %v", err)
+	}
+	newWtReal = filepath.Join(newWtReal, "wt-for-branch")
+
+	if err := git.WorktreeAdd(repo, newWt, "HEAD", "wt-branch-test", true); err != nil {
+		t.Fatalf("WorktreeAdd: %v", err)
+	}
+	wtPath, err = git.WorktreeForBranch(repo, "wt-branch-test")
+	if err != nil {
+		t.Fatalf("WorktreeForBranch: %v", err)
+	}
+	if wtPath != newWtReal {
+		t.Fatalf("expected worktree path %q, got %q", newWtReal, wtPath)
+	}
+
+	// Remove the worktree — should return empty string.
+	if err := git.WorktreeRemove(repo, newWt); err != nil {
+		t.Fatalf("WorktreeRemove: %v", err)
+	}
+	wtPath, err = git.WorktreeForBranch(repo, "wt-branch-test")
+	if err != nil {
+		t.Fatalf("WorktreeForBranch: %v", err)
+	}
+	if wtPath != "" {
+		t.Fatalf("expected empty path after removal, got %q", wtPath)
+	}
+}
+
+func TestBranchCheckedOut(t *testing.T) {
+	repo := createTestRepo(t)
+
+	// The default branch should be checked out in the main worktree.
+	branch, err := git.CurrentBranch(repo)
+	if err != nil {
+		t.Fatalf("CurrentBranch: %v", err)
+	}
+	inUse, err := git.BranchCheckedOut(repo, branch)
+	if err != nil {
+		t.Fatalf("BranchCheckedOut: %v", err)
+	}
+	if !inUse {
+		t.Fatalf("expected default branch %q to be checked out", branch)
+	}
+
+	// A branch that doesn't exist should not be checked out.
+	inUse, err = git.BranchCheckedOut(repo, "nonexistent-branch")
+	if err != nil {
+		t.Fatalf("BranchCheckedOut: %v", err)
+	}
+	if inUse {
+		t.Fatal("expected nonexistent branch to not be checked out")
+	}
+
+	// Create a new branch in a worktree, then verify it's detected.
+	wtPath := filepath.Join(t.TempDir(), "wt-checked-out")
+	if err := git.WorktreeAdd(repo, wtPath, "HEAD", "feature-in-use", true); err != nil {
+		t.Fatalf("WorktreeAdd: %v", err)
+	}
+	inUse, err = git.BranchCheckedOut(repo, "feature-in-use")
+	if err != nil {
+		t.Fatalf("BranchCheckedOut: %v", err)
+	}
+	if !inUse {
+		t.Fatal("expected feature-in-use to be checked out")
+	}
+
+	// Remove the worktree — branch should no longer be checked out.
+	if err := git.WorktreeRemove(repo, wtPath); err != nil {
+		t.Fatalf("WorktreeRemove: %v", err)
+	}
+	inUse, err = git.BranchCheckedOut(repo, "feature-in-use")
+	if err != nil {
+		t.Fatalf("BranchCheckedOut: %v", err)
+	}
+	if inUse {
+		t.Fatal("expected feature-in-use to not be checked out after worktree removal")
+	}
+}
+
 func TestBranchNameFromRef(t *testing.T) {
 	// Create an upstream repo and clone it so we have remote-tracking refs.
 	upstream := createTestRepo(t)
