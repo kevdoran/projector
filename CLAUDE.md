@@ -68,7 +68,7 @@ All git operations go through `git.RunGit(workingDir, args...)`. Never shell out
 - No global state mutation in tests (use `t.Setenv` to override `HOME`).
 
 ### Worktree Naming Convention
-Worktree directories are named `<repo-name>+<project-name>`, e.g. `my-repo+feature-x`.
+Worktree directories are named after the original git repository directory, e.g. `my-repo`.
 
 ### Branch Name Strategy
 `AvailableBranchName` tries in order:

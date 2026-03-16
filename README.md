@@ -392,17 +392,17 @@ Status:   active
 Created:  2 days ago
 
 my-api  [feature-x]
-  path    /Users/alice/projects/feature-x/my-api+feature-x
+  path    /Users/alice/projects/feature-x/my-api
   status  clean
 
 my-frontend  [feature-x]  dirty
-  path    /Users/alice/projects/feature-x/my-frontend+feature-x
+  path    /Users/alice/projects/feature-x/my-frontend
   status  dirty
      M  src/components/Button.tsx
     ??  src/components/NewComponent.tsx
 
 my-backend  [feature-x-2024]
-  path    /Users/alice/projects/feature-x/my-backend+feature-x
+  path    /Users/alice/projects/feature-x/my-backend
   status  clean
 ```
 
@@ -434,9 +434,9 @@ Before proceeding, the command previews the exact git commands it will run and s
 The following actions will be performed:
 
   api:
-    git worktree remove /Users/alice/projects/my-feature/api+my-feature
+    git worktree remove /Users/alice/projects/my-feature/api
   frontend:
-    git worktree remove /Users/alice/projects/my-feature/frontend+my-feature
+    git worktree remove /Users/alice/projects/my-feature/frontend
 
   rm -rf /Users/alice/projects/my-feature
 
@@ -476,12 +476,12 @@ For two repos (`git-repo-1`, `git-repo-2`) and two projects (`foo`, `bar`):
 ~/repos/git-repo-2
 ~/projects/foo/
   .projector.toml               # project metadata
-  git-repo-1+foo/               # git worktree (branch: foo)
-  git-repo-2+foo/               # git worktree (branch: foo)
+  git-repo-1/                   # git worktree (branch: foo)
+  git-repo-2/                   # git worktree (branch: foo)
 ~/projects/bar/
   .projector.toml
-  git-repo-1+bar/               # git worktree (branch: bar)
-  git-repo-2+bar/               # git worktree (branch: bar)
+  git-repo-1/                   # git worktree (branch: bar)
+  git-repo-2/                   # git worktree (branch: bar)
 ```
 
 ---

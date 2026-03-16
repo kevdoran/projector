@@ -196,7 +196,7 @@ func TestDiscoverWorktrees(t *testing.T) {
 	projectDir := t.TempDir()
 
 	// Add a worktree into the project dir
-	worktreePath := filepath.Join(projectDir, "my-repo+myproject")
+	worktreePath := filepath.Join(projectDir, "my-repo")
 	if err := git.WorktreeAdd(repo, worktreePath, "HEAD", "myproject", true); err != nil {
 		t.Fatalf("WorktreeAdd: %v", err)
 	}
