@@ -3,6 +3,7 @@ package git_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -472,5 +473,51 @@ func TestBranchNameFromRef(t *testing.T) {
 func TestMinVersionCheck(t *testing.T) {
 	if err := git.MinVersionCheck(); err != nil {
 		t.Fatalf("MinVersionCheck: %v", err)
+	}
+}
+
+func TestFetchRef(t *testing.T) {
+	// Create an "upstream" repo and clone it.
+	upstream := createTestRepo(t)
+	cloneDir := filepath.Join(t.TempDir(), "clone")
+	if _, err := git.RunGit(t.TempDir(), "clone", upstream, cloneDir); err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+
+	defaultBranch, err := git.CurrentBranch(cloneDir)
+	if err != nil {
+		t.Fatalf("CurrentBranch: %v", err)
+	}
+
+	// Add a new commit to the upstream repo so the clone is behind.
+	f := filepath.Join(upstream, "new-file.txt")
+	if err := os.WriteFile(f, []byte("new content\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := git.RunGit(upstream, "add", "new-file.txt"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	if _, err := git.RunGit(upstream, "commit", "-m", "second commit"); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	// Record the new upstream HEAD.
+	upstreamSHA, err := git.HeadSHA(upstream)
+	if err != nil {
+		t.Fatalf("HeadSHA upstream: %v", err)
+	}
+
+	// FetchRef should bring in only the named branch.
+	if err := git.FetchRef(cloneDir, "origin", defaultBranch); err != nil {
+		t.Fatalf("FetchRef: %v", err)
+	}
+
+	// Verify origin/<default> now points at the new commit.
+	out, err := git.RunGit(cloneDir, "rev-parse", "origin/"+defaultBranch)
+	if err != nil {
+		t.Fatalf("rev-parse: %v", err)
+	}
+	if strings.TrimSpace(out) != upstreamSHA {
+		t.Fatalf("expected origin/%s to be %s, got %s", defaultBranch, upstreamSHA, strings.TrimSpace(out))
 	}
 }
