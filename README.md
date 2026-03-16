@@ -255,7 +255,7 @@ pj project create my-feature --detached --base origin/release-2.0
 
 **Base ref validation**: When `--base` is specified, `pj` checks that the ref exists in each repository before creating worktrees. If the ref is missing from some repos, you're prompted to confirm whether to proceed with fallback bases for those repos. If the ref is missing from all repos, the command aborts with an error.
 
-**Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically runs `git fetch` for that remote before creating the worktree, so the branch is always created from an up-to-date ref.
+**Auto-fetch**: When the resolved base ref is a remote-tracking ref (e.g. `origin/main`), `pj` automatically fetches only that ref before creating the worktree, so the branch is always created from an up-to-date ref. Only the needed ref is fetched (not the entire remote), which is significantly faster for large repositories.
 
 **Rollback**: If any worktree fails to be created, all previously created worktrees and the project directory are removed automatically.
 

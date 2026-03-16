@@ -235,11 +235,22 @@ func RemoteForRef(repoPath, ref string) (string, error) {
 	return "", nil
 }
 
-// Fetch fetches from the given remote.
+// Fetch fetches all refs from the given remote.
 func Fetch(repoPath, remote string) error {
 	_, err := RunGit(repoPath, "fetch", remote)
 	if err != nil {
 		return fmt.Errorf("fetch %s: %w", remote, err)
+	}
+	return nil
+}
+
+// FetchRef fetches a single ref from the given remote. This is faster than
+// Fetch for large repos because only the named ref (and its ancestors) are
+// transferred instead of every ref on the remote.
+func FetchRef(repoPath, remote, ref string) error {
+	_, err := RunGit(repoPath, "fetch", remote, ref)
+	if err != nil {
+		return fmt.Errorf("fetch %s %s: %w", remote, ref, err)
 	}
 	return nil
 }

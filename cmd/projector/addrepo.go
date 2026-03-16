@@ -174,9 +174,10 @@ func newAddRepoCmd() *cobra.Command {
 					return fmt.Errorf("check remote for %s: %w", r.Name, err)
 				}
 				if remote != "" {
-					fmt.Printf("  fetching %s in %s…\n", remote, r.Name)
-					if err := git.Fetch(r.Path, remote); err != nil {
-						return fmt.Errorf("fetch %s in %s: %w", remote, r.Name, err)
+					ref := strings.TrimPrefix(repoBase, remote+"/")
+					fmt.Printf("  fetching %s in %s…\n", repoBase, r.Name)
+					if err := git.FetchRef(r.Path, remote, ref); err != nil {
+						return fmt.Errorf("fetch %s in %s: %w", repoBase, r.Name, err)
 					}
 				}
 
