@@ -29,10 +29,10 @@ Worktrees solve this by giving each task its own directory:
 ~/repos/my-api/                    # original clone (main branch)
 
 ~/projects/feature-x/
-    my-api+feature-x/              # worktree (feature-x branch)
+    my-api/                        # worktree (feature-x branch)
 
 ~/projects/bugfix-y/
-    my-api+bugfix-y/               # worktree (bugfix-y branch)
+    my-api/                        # worktree (bugfix-y branch)
 ```
 
 Each agent gets its own isolated workspace. No conflicts, no coordination needed. You can spin up a new task in seconds and tear it down when you're done — the branch stays in the original repo.
@@ -67,14 +67,14 @@ The result is a clean project directory you can open as a single workspace:
 ```
 ~/projects/feature-x/
     .projector.toml
-    api+feature-x/           # worktree of api repo
-    frontend+feature-x/      # worktree of frontend repo
-    infra+feature-x/         # worktree of infra repo
+    api/                     # worktree of api repo
+    frontend/                # worktree of frontend repo
+    infra/                   # worktree of infra repo
 
 ~/projects/bugfix-y/
     .projector.toml
-    api+bugfix-y/
-    frontend+bugfix-y/
+    api/
+    frontend/
 ```
 
 Each project is a self-contained workspace. Open it in Cursor, point Claude Code at it, or work in it yourself — all without touching any other project.

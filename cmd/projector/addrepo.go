@@ -293,7 +293,7 @@ func newAddRepoCmd() *cobra.Command {
 			}
 
 			for _, rr := range resolved {
-				worktreePath := filepath.Join(projectDir, rr.repo.Name+"+"+projectName)
+				worktreePath := filepath.Join(projectDir, rr.repo.Name)
 
 				if detached {
 					if err := git.WorktreeAddDetached(rr.repo.Path, worktreePath, rr.base); err != nil {

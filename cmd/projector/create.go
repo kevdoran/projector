@@ -296,7 +296,7 @@ func newCreateCmd() *cobra.Command {
 
 			// Phase 3: Create worktrees.
 			for _, rr := range resolved {
-				worktreePath := filepath.Join(projectDir, rr.repo.Name+"+"+name)
+				worktreePath := filepath.Join(projectDir, rr.repo.Name)
 
 				if detached {
 					if err := git.WorktreeAddDetached(rr.repo.Path, worktreePath, rr.base); err != nil {
