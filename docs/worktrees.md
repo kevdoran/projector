@@ -91,5 +91,6 @@ Each project is a self-contained workspace. Open it in Cursor, point Claude Code
 
 ## Further reading
 
-- [git-worktree documentation](https://git-scm.com/docs/git-worktree)
 - [pj README](../README.md) — full command reference
+- [git-worktree documentation](https://git-scm.com/docs/git-worktree)
+

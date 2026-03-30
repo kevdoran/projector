@@ -25,6 +25,9 @@ archives:
     formats:
       - tar.gz
 
+extra_files:
+  - glob: pj-skill.md
+
 notarize:
   macos:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
@@ -51,7 +54,7 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-homebrew_casks:
+brews:
   - name: pj
     homepage: "https://github.com/kevdoran/projector"
     description: "Manage parallel projects backed by git worktrees"
@@ -60,4 +63,4 @@ homebrew_casks:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     dependencies:
-      - formula: git
+      - name: git
