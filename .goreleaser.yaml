@@ -24,9 +24,8 @@ archives:
   - name_template: "pj_{{ .Os }}_{{ .Arch }}"
     formats:
       - tar.gz
-
-extra_files:
-  - glob: pj-skill.md
+    extra_files:
+      - glob: pj-skill.md
 
 notarize:
   macos:
