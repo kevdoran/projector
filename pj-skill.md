@@ -6,9 +6,9 @@
 
 ## This Skill File
 
-This skill file was introduced in **v1.0.0** — it does not exist in earlier releases. If `pj version` reports a version older than v1.0.0, this file is not available for that version.
+This skill file was introduced in **v0.5.0** — it does not exist in earlier releases. If `pj version` reports a version older than v0.5.0, this file is not available for that version.
 
-Each release of `pj` v1.0.0 and later ships a corresponding version of this skill file. To get the skill file that matches the installed version:
+Each release of `pj` v0.5.0 and later ships a corresponding version of this skill file. To get the skill file that matches the installed version:
 
 ```bash
 pj version   # shows installed version, e.g. v1.2.3

@@ -6,16 +6,16 @@ Add the `kevdoran` homebrew tap, then install the `pj` formula:
 
 ```bash
 brew tap kevdoran/tap  # one-time command to add the kevdoran tap
-brew install pj
+brew install --cask pj
 ```
 
 To upgrade to the lastest version:
 
 ```bash
-brew upgrade pj
+brew upgrade --cask pj
 ```
 
-### Upgrading from v0.x (cask install)
+<!-- ### Upgrading from v0.x (cask install)
 
 Prior to v1.0.0, `pj` was distributed as a Homebrew cask. To migrate to the Homebrew formula:
 
@@ -26,7 +26,7 @@ brew uninstall --cask kevdoran/tap/pj
 # install to homebrew's formula directory
 brew tap kevdoran/tap  # one-time command to add the kevdoran tap
 brew install pj
-```
+``` -->
 
 ## Binary download
 

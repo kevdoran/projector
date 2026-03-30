@@ -24,8 +24,8 @@ archives:
   - name_template: "pj_{{ .Os }}_{{ .Arch }}"
     formats:
       - tar.gz
-    extra_files:
-      - glob: pj-skill.md
+    files:
+      - pj-skill.md
 
 notarize:
   macos:
@@ -53,7 +53,7 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-brews:
+homebrew_casks:
   - name: pj
     homepage: "https://github.com/kevdoran/projector"
     description: "Manage parallel projects backed by git worktrees"
