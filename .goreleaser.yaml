@@ -62,4 +62,4 @@ homebrew_casks:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     dependencies:
-      - name: git
+      - formula: git
