@@ -144,9 +144,19 @@ func newCreateCmd() *cobra.Command {
 
 			for _, r := range repos {
 				var repoBase string
+				refFound := true
+
 				switch {
 				case base != "":
-					repoBase = base
+					// Resolve the explicit --base ref, falling back to the
+					// default remote when an unqualified ref is not found locally.
+					resolvedBase, found, err := resolveBaseRef(r.Name, r.Path, base)
+					if err != nil {
+						rollback()
+						return err
+					}
+					repoBase = resolvedBase
+					refFound = found
 
 				case fromProject != "":
 					srcDir := project.ProjectDir(cfg.ProjectsDir, fromProject)
@@ -162,6 +172,10 @@ func newCreateCmd() *cobra.Command {
 					if repoBase == "" {
 						repoBase, _ = config.ResolveBase(cfg, r.Name, r.Path)
 					}
+					if err := fetchIfRemote(r.Name, r.Path, repoBase); err != nil {
+						rollback()
+						return err
+					}
 
 				default:
 					repoBase, err = config.ResolveBase(cfg, r.Name, r.Path)
@@ -169,32 +183,10 @@ func newCreateCmd() *cobra.Command {
 						rollback()
 						return fmt.Errorf("resolve base for %s: %w", r.Name, err)
 					}
-				}
-
-				// Fetch before using a remote-tracking ref so it is up to date.
-				remote, err := git.RemoteForRef(r.Path, repoBase)
-				if err != nil {
-					rollback()
-					return fmt.Errorf("check remote for %s: %w", r.Name, err)
-				}
-				if remote != "" {
-					ref := strings.TrimPrefix(repoBase, remote+"/")
-					fmt.Printf("  fetching %s in %s…\n", repoBase, r.Name)
-					if err := git.FetchRef(r.Path, remote, ref); err != nil {
+					if err := fetchIfRemote(r.Name, r.Path, repoBase); err != nil {
 						rollback()
-						return fmt.Errorf("fetch %s in %s: %w", repoBase, r.Name, err)
+						return err
 					}
-				}
-
-				// Check if the explicit --base ref exists in this repo.
-				refFound := true
-				if base != "" {
-					exists, err := git.RefExists(r.Path, repoBase)
-					if err != nil {
-						rollback()
-						return fmt.Errorf("check ref for %s: %w", r.Name, err)
-					}
-					refFound = exists
 				}
 
 				// Check if the branch is already checked out in another worktree.

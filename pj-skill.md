@@ -191,5 +191,5 @@ pj config set editors.aider.terminal true
 
 - **Not configured**: if `pj config list` fails or shows no `projects-dir`, run `pj config setup` first
 - **Dirty worktrees**: `archive` and `delete` refuse to proceed; commit or stash changes first
-- **Missing ref**: `--base <ref>` validates the ref exists across repos before creating worktrees; if absent in some repos you'll be prompted whether to proceed with fallback bases
+- **Missing ref**: `--base <ref>` validates the ref exists across repos before creating worktrees; if absent in some repos you'll be prompted whether to proceed with fallback bases. A bare ref (e.g. `--base pr5-branch`) that isn't found locally is automatically retried against the default remote (`origin`, or the sole remote), so you don't need to spell out `origin/pr5-branch`.
 - **Branch conflicts**: `pj` tries `<name>`, then `<name>-YYYY-MM-DD`, then `<name>-YYYY-MM-DD-N` to avoid collisions
