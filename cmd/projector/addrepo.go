@@ -159,35 +159,24 @@ func newAddRepoCmd() *cobra.Command {
 				}
 
 				var repoBase string
+				refFound := true
 				if base != "" {
-					repoBase = base
+					// Resolve the explicit --base ref, falling back to the
+					// default remote when an unqualified ref is not found locally.
+					resolvedBase, found, err := resolveBaseRef(r.Name, r.Path, base)
+					if err != nil {
+						return err
+					}
+					repoBase = resolvedBase
+					refFound = found
 				} else {
 					repoBase, err = config.ResolveBase(cfg, r.Name, r.Path)
 					if err != nil {
 						return fmt.Errorf("resolve base for %s: %w", r.Name, err)
 					}
-				}
-
-				// Fetch before using a remote-tracking ref so it is up to date.
-				remote, err := git.RemoteForRef(r.Path, repoBase)
-				if err != nil {
-					return fmt.Errorf("check remote for %s: %w", r.Name, err)
-				}
-				if remote != "" {
-					ref := strings.TrimPrefix(repoBase, remote+"/")
-					fmt.Printf("  fetching %s in %s…\n", repoBase, r.Name)
-					if err := git.FetchRef(r.Path, remote, ref); err != nil {
-						return fmt.Errorf("fetch %s in %s: %w", repoBase, r.Name, err)
+					if err := fetchIfRemote(r.Name, r.Path, repoBase); err != nil {
+						return err
 					}
-				}
-
-				refFound := true
-				if base != "" {
-					exists, err := git.RefExists(r.Path, repoBase)
-					if err != nil {
-						return fmt.Errorf("check ref for %s: %w", r.Name, err)
-					}
-					refFound = exists
 				}
 
 				// Check if the branch is already checked out in another worktree.

@@ -220,6 +220,26 @@ func Remotes(repoPath string) ([]string, error) {
 	return strings.Split(out, "\n"), nil
 }
 
+// DefaultRemote returns the preferred remote for a repo: "origin" if it is
+// configured, otherwise the sole remote when exactly one exists. It returns ""
+// (no error) when the repo has no remotes or has multiple remotes without an
+// "origin".
+func DefaultRemote(repoPath string) (string, error) {
+	remotes, err := Remotes(repoPath)
+	if err != nil {
+		return "", err
+	}
+	for _, r := range remotes {
+		if r == "origin" {
+			return "origin", nil
+		}
+	}
+	if len(remotes) == 1 {
+		return remotes[0], nil
+	}
+	return "", nil
+}
+
 // RemoteForRef returns the remote name if ref is a remote-tracking ref (e.g. "origin/main" → "origin"),
 // or "" if it is a local ref. The check is done by matching configured remote names as prefixes.
 func RemoteForRef(repoPath, ref string) (string, error) {

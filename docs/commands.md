@@ -125,6 +125,14 @@ pj project create my-feature --base HEAD
 
 **Branch base**: Branches are created from `origin/main` → `HEAD` by default (configurable per-repo via `[repos.<name>]`). Use `--base <ref>` for an explicit ref. With `--from`, each repo branches from the corresponding worktree branch of the source project.
 
+**Remote fallback**: When `--base <ref>` does not name a remote (e.g. `--base pr5-branch` rather than `--base origin/pr5-branch`) and no matching local ref exists, `pj` automatically retries against the repo's default remote — `origin` if present, otherwise the sole remote. So `--base pr5-branch` resolves to `origin/pr5-branch` when that branch only exists on the remote. A local ref of the same name always wins over the remote fallback.
+
+```bash
+# Both work even when pr5-branch only exists on origin:
+pj project create pr5-review --base pr5-branch my-repo
+pj project create pr5-review --base origin/pr5-branch my-repo
+```
+
 **Checkout existing branch**: `--checkout` with `--base` checks out an existing branch instead of creating a new one. Git DWIM handles both local and remote-tracking branches.
 
 ```bash
@@ -264,6 +272,8 @@ pj project add-repo --checkout --base feature-branch new-repo
 # Detached HEAD state
 pj project add-repo --detached new-repo
 ```
+
+Like `pj project create`, `--base` accepts a bare ref and falls back to the default remote when no matching local ref exists (e.g. `--base pr5-branch` resolves to `origin/pr5-branch`).
 
 ### `pj project archive [project]`
 

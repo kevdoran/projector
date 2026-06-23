@@ -521,3 +521,84 @@ func TestFetchRef(t *testing.T) {
 		t.Fatalf("expected origin/%s to be %s, got %s", defaultBranch, upstreamSHA, strings.TrimSpace(out))
 	}
 }
+
+func TestDefaultRemote(t *testing.T) {
+	t.Run("no remotes", func(t *testing.T) {
+		repo := createTestRepo(t)
+		got, err := git.DefaultRemote(repo)
+		if err != nil {
+			t.Fatalf("DefaultRemote: %v", err)
+		}
+		if got != "" {
+			t.Fatalf("expected no default remote, got %q", got)
+		}
+	})
+
+	t.Run("origin via clone", func(t *testing.T) {
+		upstream := createTestRepo(t)
+		cloneDir := filepath.Join(t.TempDir(), "clone")
+		if _, err := git.RunGit(t.TempDir(), "clone", upstream, cloneDir); err != nil {
+			t.Fatalf("clone: %v", err)
+		}
+		got, err := git.DefaultRemote(cloneDir)
+		if err != nil {
+			t.Fatalf("DefaultRemote: %v", err)
+		}
+		if got != "origin" {
+			t.Fatalf("expected origin, got %q", got)
+		}
+	})
+
+	t.Run("sole non-origin remote", func(t *testing.T) {
+		upstream := createTestRepo(t)
+		repo := createTestRepo(t)
+		if _, err := git.RunGit(repo, "remote", "add", "upstream", upstream); err != nil {
+			t.Fatalf("remote add: %v", err)
+		}
+		got, err := git.DefaultRemote(repo)
+		if err != nil {
+			t.Fatalf("DefaultRemote: %v", err)
+		}
+		if got != "upstream" {
+			t.Fatalf("expected upstream, got %q", got)
+		}
+	})
+
+	t.Run("multiple remotes without origin", func(t *testing.T) {
+		a := createTestRepo(t)
+		b := createTestRepo(t)
+		repo := createTestRepo(t)
+		if _, err := git.RunGit(repo, "remote", "add", "fork-a", a); err != nil {
+			t.Fatalf("remote add: %v", err)
+		}
+		if _, err := git.RunGit(repo, "remote", "add", "fork-b", b); err != nil {
+			t.Fatalf("remote add: %v", err)
+		}
+		got, err := git.DefaultRemote(repo)
+		if err != nil {
+			t.Fatalf("DefaultRemote: %v", err)
+		}
+		if got != "" {
+			t.Fatalf("expected no default remote with multiple non-origin remotes, got %q", got)
+		}
+	})
+
+	t.Run("origin preferred over others", func(t *testing.T) {
+		upstream := createTestRepo(t)
+		cloneDir := filepath.Join(t.TempDir(), "clone")
+		if _, err := git.RunGit(t.TempDir(), "clone", upstream, cloneDir); err != nil {
+			t.Fatalf("clone: %v", err)
+		}
+		other := createTestRepo(t)
+		if _, err := git.RunGit(cloneDir, "remote", "add", "upstream", other); err != nil {
+			t.Fatalf("remote add: %v", err)
+		}
+		got, err := git.DefaultRemote(cloneDir)
+		if err != nil {
+			t.Fatalf("DefaultRemote: %v", err)
+		}
+		if got != "origin" {
+			t.Fatalf("expected origin to be preferred, got %q", got)
+		}
+	})
+}
