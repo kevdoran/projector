@@ -83,6 +83,20 @@ func WorktreeRemove(repoPath, worktreePath string) error {
 	return nil
 }
 
+// WorktreeRepair re-establishes the administrative links between a repository
+// and its worktrees by running `git worktree repair`. This fixes stale gitdir
+// and commondir pointers after a repository or worktree has been moved or
+// renamed. The optional worktreePaths are passed as arguments so git can repair
+// worktrees whose location has changed (git needs the new path to find them).
+func WorktreeRepair(repoPath string, worktreePaths ...string) error {
+	args := append([]string{"worktree", "repair"}, worktreePaths...)
+	_, err := RunGit(repoPath, args...)
+	if err != nil {
+		return fmt.Errorf("worktree repair: %w", err)
+	}
+	return nil
+}
+
 // WorktreeList returns the list of worktrees for the repository in porcelain format lines.
 func WorktreeList(repoPath string) (string, error) {
 	out, err := RunGit(repoPath, "worktree", "list", "--porcelain")

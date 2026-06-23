@@ -131,6 +131,13 @@ Fails if any worktree has uncommitted changes. Saves worktree state for restore.
 pj project restore my-feature
 ```
 
+### Repair worktrees after moving or renaming a project
+If a project directory is moved or renamed, its worktrees' internal git pointers go stale and git operations inside them fail. Repair fixes them with `git worktree repair`.
+```bash
+pj project repair my-feature
+```
+Only works on active projects. Safe to run anytime; a no-op when nothing needs fixing.
+
 ### Delete a project (irreversible — only when explicitly requested)
 **Do not run `pj project delete` unless the user explicitly asks to delete the project.** Prefer `pj project archive` for all routine cleanup — it is reversible and the safe default.
 

@@ -289,6 +289,27 @@ pj project archive my-feature
 
 The `.projector.toml` is updated to `status = "archived"` and worktree state is saved for future restore. **Uncommitted changes in any worktree will prevent archiving.**
 
+### `pj project repair [project]`
+
+Repair the git worktrees in an active project after the project directory has been moved or renamed. Moving or renaming a project leaves each worktree's internal `gitdir`/`commondir` pointers stale, so git can no longer resolve them. This runs `git worktree repair` for every worktree to fix those pointers.
+
+```bash
+pj project repair               # detect from current directory
+pj project repair my-feature
+```
+
+The command discovers each live worktree and repairs it, printing a per-worktree summary:
+
+```
+  Repairing worktree for api...
+    repaired: /Users/alice/projects/my-feature/api
+  Repairing worktree for frontend...
+    repaired: /Users/alice/projects/my-feature/frontend
+Repaired 2 worktree(s) in project "my-feature".
+```
+
+Only **active** projects have live worktrees to repair; archived projects are rejected. A project with no worktrees is reported and left untouched.
+
 ### `pj project restore [project]`
 
 Restore an archived project by recreating all its git worktrees.

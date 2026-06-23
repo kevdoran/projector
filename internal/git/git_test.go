@@ -10,10 +10,23 @@ import (
 	"github.com/kevdoran/projector/internal/git"
 )
 
-// createTestRepo initialises a git repo with an initial commit and returns its path.
+// createTestRepo initialises a git repo with an initial commit in a fresh temp
+// directory and returns its path.
 func createTestRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
+	makeRepoAt(t, dir)
+	return dir
+}
+
+// makeRepoAt initialises a git repo with an initial commit at the given path,
+// creating the directory if needed. Useful when the repo must live at a
+// specific location (e.g. under a parent directory that will be moved).
+func makeRepoAt(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("mkdir repo: %v", err)
+	}
 
 	run := func(args ...string) {
 		t.Helper()
@@ -35,8 +48,6 @@ func createTestRepo(t *testing.T) string {
 	}
 	run("add", "README.md")
 	run("commit", "-m", "initial commit")
-
-	return dir
 }
 
 func TestRunGit_Success(t *testing.T) {
@@ -106,6 +117,74 @@ func TestWorktreeAdd_ExistingBranch(t *testing.T) {
 	}
 	if err := git.WorktreeRemove(repo, wt2); err != nil {
 		t.Fatalf("cleanup WorktreeRemove: %v", err)
+	}
+}
+
+func TestWorktreeRepair(t *testing.T) {
+	// Simulate a project that is moved/renamed: a parent directory containing both
+	// the repo and a worktree. Renaming the parent leaves both git pointers stale
+	// (the worktree's .git file points at the old repo path, and the repo's
+	// administrative gitdir points at the old worktree path).
+	root := t.TempDir()
+	oldDir := filepath.Join(root, "project-old")
+	if err := os.Mkdir(oldDir, 0755); err != nil {
+		t.Fatalf("mkdir project dir: %v", err)
+	}
+
+	repo := filepath.Join(oldDir, "repo")
+	makeRepoAt(t, repo)
+
+	wt := filepath.Join(oldDir, "wt")
+	if err := git.WorktreeAdd(repo, wt, "HEAD", "repair-branch", true); err != nil {
+		t.Fatalf("WorktreeAdd: %v", err)
+	}
+
+	// Sanity check: worktree is healthy before the move.
+	if _, err := git.RunGit(wt, "status"); err != nil {
+		t.Fatalf("worktree should be healthy before move: %v", err)
+	}
+
+	// Rename the whole project directory.
+	newDir := filepath.Join(root, "project-new")
+	if err := os.Rename(oldDir, newDir); err != nil {
+		t.Fatalf("rename project dir: %v", err)
+	}
+	newRepo := filepath.Join(newDir, "repo")
+	newWt := filepath.Join(newDir, "wt")
+
+	// The worktree is now broken: its .git file still points at the old repo path.
+	if _, err := git.RunGit(newWt, "status"); err == nil {
+		t.Fatal("expected git status to fail in moved worktree before repair")
+	}
+
+	// Repair from the (moved) repo, passing the new worktree path so git can find it.
+	if err := git.WorktreeRepair(newRepo, newWt); err != nil {
+		t.Fatalf("WorktreeRepair: %v", err)
+	}
+
+	// After repair the worktree resolves again.
+	if _, err := git.RunGit(newWt, "status"); err != nil {
+		t.Fatalf("worktree should be healthy after repair: %v", err)
+	}
+
+	// git worktree list should reference the new path, not the old one.
+	out, err := git.WorktreeList(newRepo)
+	if err != nil {
+		t.Fatalf("WorktreeList: %v", err)
+	}
+	if !strings.Contains(out, newWt) {
+		t.Fatalf("worktree list does not reference new path %q:\n%s", newWt, out)
+	}
+	if strings.Contains(out, wt) {
+		t.Fatalf("worktree list still references old path %q:\n%s", wt, out)
+	}
+}
+
+func TestWorktreeRepair_NoWorktrees(t *testing.T) {
+	repo := createTestRepo(t)
+	// Repairing a repo with no extra worktrees should be a no-op, not an error.
+	if err := git.WorktreeRepair(repo); err != nil {
+		t.Fatalf("WorktreeRepair on repo with no worktrees: %v", err)
 	}
 }
 
