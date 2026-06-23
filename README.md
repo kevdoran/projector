@@ -18,7 +18,7 @@ pj project create feature-x api frontend infra
 
 ```bash
 brew tap kevdoran/tap  # one-time command to add the kevdoran tap
-brew install --cask pj
+brew install pj
 ```
 
 Other methods: [binary download, from source](docs/install.md)

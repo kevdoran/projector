@@ -53,13 +53,8 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-homebrew_casks:
-  - name: pj
-    homepage: "https://github.com/kevdoran/projector"
-    description: "Manage parallel projects backed by git worktrees"
-    repository:
-      owner: kevdoran
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    dependencies:
-      - formula: git
+# Homebrew is intentionally NOT managed by GoReleaser.
+# The `brews` (formula) key was deprecated in GoReleaser v2.10 and removed in
+# v2.16, and GoReleaser can only emit binary `homebrew_casks` now — it cannot
+# generate a build-from-source formula. The `pj` formula is therefore
+# hand-maintained (build-from-source) in the kevdoran/homebrew-tap repo.
