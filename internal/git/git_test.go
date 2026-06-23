@@ -121,6 +121,17 @@ func TestWorktreeAdd_ExistingBranch(t *testing.T) {
 }
 
 func TestWorktreeRepair(t *testing.T) {
+	// This exercises the git wrapper directly against a "repo and worktree moved
+	// together" scenario: a single parent directory holds BOTH the repo and the
+	// worktree, and renaming the parent breaks both pointers. The test then passes
+	// the post-move repo path straight to WorktreeRepair.
+	//
+	// Note this is NOT the path the `pj project repair` command takes — the command
+	// discovers the repo from the worktree's still-valid .git file and never sees a
+	// repo that has itself moved. For a faithful reproduction of pj's common layout
+	// (external repo, only the project dir renamed) see
+	// TestWorktreeRepair_RenamedProjectDir below.
+	//
 	// Simulate a project that is moved/renamed: a parent directory containing both
 	// the repo and a worktree. Renaming the parent leaves both git pointers stale
 	// (the worktree's .git file points at the old repo path, and the repo's
@@ -177,6 +188,99 @@ func TestWorktreeRepair(t *testing.T) {
 	}
 	if strings.Contains(out, wt) {
 		t.Fatalf("worktree list still references old path %q:\n%s", wt, out)
+	}
+}
+
+// TestWorktreeRepair_RenamedProjectDir reproduces pj's common layout and the
+// exact breakage the `pj project repair` command fixes:
+//
+//   - The git repo lives EXTERNALLY (in a repo-search-dir), outside the project dir.
+//   - A worktree is created under a separate "project dir".
+//   - Only the PROJECT DIR is renamed; the external repo stays put.
+//
+// Because the external repo did not move, the worktree's own .git file (an
+// absolute path to the external repo) stays valid, so `git -C <worktree> status`
+// keeps working. But the repo's administrative pointer
+// (.git/worktrees/<id>/gitdir) goes stale, so `git worktree list` from the repo
+// marks the worktree as `prunable` and still points at the OLD path.
+//
+// `git worktree repair <newWorktreePath>` run from the external repo — exactly
+// what the command does (anchored at wt.RepoPath with the new worktree path as an
+// arg) — fixes the stale admin pointer.
+func TestWorktreeRepair_RenamedProjectDir(t *testing.T) {
+	// External repo, outside the project dir.
+	repo := createTestRepo(t)
+
+	// Project dir holding the worktree, in a separate location.
+	projectDir := filepath.Join(t.TempDir(), "project")
+	if err := os.MkdirAll(projectDir, 0755); err != nil {
+		t.Fatalf("mkdir project dir: %v", err)
+	}
+	wt := filepath.Join(projectDir, "myrepo")
+	if err := git.WorktreeAdd(repo, wt, "HEAD", "feature-branch", true); err != nil {
+		t.Fatalf("WorktreeAdd: %v", err)
+	}
+
+	// Sanity: worktree healthy and listed at its current path before the move.
+	if _, err := git.RunGit(wt, "status"); err != nil {
+		t.Fatalf("worktree should be healthy before move: %v", err)
+	}
+
+	// Rename ONLY the project dir; the external repo stays put.
+	projectDirRenamed := filepath.Join(filepath.Dir(projectDir), "project-renamed")
+	if err := os.Rename(projectDir, projectDirRenamed); err != nil {
+		t.Fatalf("rename project dir: %v", err)
+	}
+	newWt := filepath.Join(projectDirRenamed, "myrepo")
+
+	// The worktree's own .git file still points at the (unmoved) external repo, so
+	// status from the new path keeps working — this is what masks the problem from
+	// the worktree's perspective.
+	if _, err := git.RunGit(newWt, "status"); err != nil {
+		t.Fatalf("worktree status from new path should still work (external repo did not move): %v", err)
+	}
+
+	// Assert the breakage: the repo's admin pointer is stale, so worktree list
+	// marks the worktree prunable and still references the OLD path.
+	before, err := git.RunGit(repo, "worktree", "list", "--porcelain")
+	if err != nil {
+		t.Fatalf("worktree list (before repair): %v", err)
+	}
+	if !strings.Contains(before, "prunable") {
+		t.Fatalf("expected stale worktree to be marked prunable before repair:\n%s", before)
+	}
+	if !strings.Contains(before, wt) {
+		t.Fatalf("expected worktree list to still reference old path %q before repair:\n%s", wt, before)
+	}
+	if strings.Contains(before, newWt) {
+		t.Fatalf("did not expect worktree list to reference new path %q before repair:\n%s", newWt, before)
+	}
+
+	// Repair from the external repo, passing the new worktree path — exactly what
+	// the command does.
+	if err := git.WorktreeRepair(repo, newWt); err != nil {
+		t.Fatalf("WorktreeRepair: %v", err)
+	}
+
+	// Assert the fix: the admin pointer now references the new path and is no
+	// longer prunable.
+	after, err := git.RunGit(repo, "worktree", "list", "--porcelain")
+	if err != nil {
+		t.Fatalf("worktree list (after repair): %v", err)
+	}
+	if strings.Contains(after, "prunable") {
+		t.Fatalf("worktree should not be prunable after repair:\n%s", after)
+	}
+	if !strings.Contains(after, newWt) {
+		t.Fatalf("worktree list should reference new path %q after repair:\n%s", newWt, after)
+	}
+	if strings.Contains(after, wt) {
+		t.Fatalf("worktree list should not reference old path %q after repair:\n%s", wt, after)
+	}
+
+	// And the worktree itself is still healthy.
+	if _, err := git.RunGit(newWt, "status"); err != nil {
+		t.Fatalf("worktree should be healthy after repair: %v", err)
 	}
 }
 
