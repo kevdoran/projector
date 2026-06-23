@@ -122,7 +122,7 @@ func Load() (*GlobalConfig, error) {
 			// legacy file rather than failing the whole command.
 			return loadFile(legacyPath)
 		}
-		fmt.Printf("Migrated projector config to %s (copied from %s; the old file was left in place).\n", path, legacyPath)
+		fmt.Fprintf(os.Stderr, "Migrated projector config to %s (copied from %s; the old file was left in place).\n", path, legacyPath)
 		return loadFile(path)
 	}
 
