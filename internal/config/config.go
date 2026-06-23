@@ -17,8 +17,15 @@ import (
 var ErrNotFound = errors.New("config file not found")
 
 const (
-	configDirName  = ".projector"
-	configFileName = "projector-config.toml"
+	// New (preferred) XDG-style location: $XDG_CONFIG_HOME/projector/config.toml
+	// (defaulting to ~/.config/projector/config.toml).
+	configSubdir   = "projector"
+	configFileName = "config.toml"
+
+	// Legacy location: ~/.projector/projector-config.toml. Still read for
+	// backwards compatibility, and migrated to the new location on load.
+	legacyConfigDirName  = ".projector"
+	legacyConfigFileName = "projector-config.toml"
 
 	// CurrentConfigVersion is the config schema version written by this binary.
 	// Increment when a migration is needed; Load will reject files with a higher version.
@@ -28,7 +35,7 @@ const (
 // ErrConfigVersionTooNew is returned when the config file was written by a newer version of projector.
 var ErrConfigVersionTooNew = errors.New("config file was written by a newer version of projector; please upgrade")
 
-// GlobalConfig is the top-level structure for ~/.projector/projector-config.toml.
+// GlobalConfig is the top-level structure for ~/.config/projector/config.toml.
 type GlobalConfig struct {
 	ConfigVersion  int                      `toml:"config-version"`
 	ProjectsDir    string                   `toml:"projects-dir"`
@@ -50,16 +57,22 @@ type RepoConfig struct {
 	DefaultBase string `toml:"default-base"`
 }
 
-// ConfigDir returns the path to the projector config directory (~/.projector).
+// ConfigDir returns the path to the projector config directory
+// ($XDG_CONFIG_HOME/projector, defaulting to ~/.config/projector).
 func ConfigDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("home dir: %w", err)
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("home dir: %w", err)
+		}
+		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(home, configDirName), nil
+	return filepath.Join(base, configSubdir), nil
 }
 
-// ConfigFilePath returns the full path to projector-config.toml.
+// ConfigFilePath returns the full path to the config file in the new
+// (preferred) location: $XDG_CONFIG_HOME/projector/config.toml.
 func ConfigFilePath() (string, error) {
 	dir, err := ConfigDir()
 	if err != nil {
@@ -68,8 +81,26 @@ func ConfigFilePath() (string, error) {
 	return filepath.Join(dir, configFileName), nil
 }
 
+// legacyConfigFilePath returns the full path to the legacy config file
+// (~/.projector/projector-config.toml).
+func legacyConfigFilePath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("home dir: %w", err)
+	}
+	return filepath.Join(home, legacyConfigDirName, legacyConfigFileName), nil
+}
+
 // Load reads and parses the global config file.
-// Returns ErrNotFound if the file does not exist.
+//
+// Resolution order:
+//  1. The new (preferred) location $XDG_CONFIG_HOME/projector/config.toml.
+//  2. The legacy location ~/.projector/projector-config.toml. When the config
+//     is found only here, it is migrated (copied) to the new location so future
+//     loads use it; the legacy file is left in place for compatibility with
+//     older pj binaries. A message is printed to stdout describing the copy.
+//
+// Returns ErrNotFound if neither file exists.
 func Load() (*GlobalConfig, error) {
 	path, err := ConfigFilePath()
 	if err != nil {
@@ -77,9 +108,29 @@ func Load() (*GlobalConfig, error) {
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, ErrNotFound
+		// New location missing — fall back to the legacy location.
+		legacyPath, lerr := legacyConfigFilePath()
+		if lerr != nil {
+			return nil, lerr
+		}
+		if _, lerr := os.Stat(legacyPath); os.IsNotExist(lerr) {
+			return nil, ErrNotFound
+		}
+		// Migrate (copy) legacy → new so future loads use the new location.
+		if merr := migrateLegacyConfig(legacyPath, path); merr != nil {
+			// Migration is best-effort; if it fails, still load from the
+			// legacy file rather than failing the whole command.
+			return loadFile(legacyPath)
+		}
+		fmt.Fprintf(os.Stderr, "Migrated projector config to %s (copied from %s; the old file was left in place).\n", path, legacyPath)
+		return loadFile(path)
 	}
 
+	return loadFile(path)
+}
+
+// loadFile parses a single config file at the given path.
+func loadFile(path string) (*GlobalConfig, error) {
 	cfg := &GlobalConfig{}
 	if _, err := toml.DecodeFile(path, cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
@@ -89,6 +140,22 @@ func Load() (*GlobalConfig, error) {
 			ErrConfigVersionTooNew, cfg.ConfigVersion, CurrentConfigVersion)
 	}
 	return cfg, nil
+}
+
+// migrateLegacyConfig copies the legacy config file to the new location,
+// creating the destination directory if needed. The source is left untouched.
+func migrateLegacyConfig(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("read legacy config: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+	if err := os.WriteFile(dst, data, 0644); err != nil {
+		return fmt.Errorf("write migrated config: %w", err)
+	}
+	return nil
 }
 
 const editorComment = `# default-editor: editor command used by "pj project open" without prompting.

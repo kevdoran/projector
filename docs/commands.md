@@ -14,7 +14,10 @@ Sets up:
 - **Projects directory** — where project directories are created (e.g. `~/code/projects`)
 - **Repository search directories** — directories scanned for git repos (e.g. `~/code/repos/work,~/code/repos/personal`)
 
-Configuration is saved to `~/.projector/projector-config.toml`.
+Configuration is saved to `~/.config/projector/config.toml` (honoring
+`$XDG_CONFIG_HOME` if set). For backwards compatibility, if a config exists only
+at the legacy location `~/.projector/projector-config.toml`, it is read and
+copied to the new location on first use (the legacy file is left in place).
 
 ### `pj config list`
 
@@ -221,7 +224,7 @@ To open in Claude Code, run:
   cd /Users/alice/projects/my-feature && claude
 ```
 
-**Custom editors** — define additional editors in `~/.projector/projector-config.toml`:
+**Custom editors** — define additional editors in `~/.config/projector/config.toml`:
 ```toml
 default-editor = "cursor"
 
@@ -358,7 +361,7 @@ Output:
 
 ## Configuration File
 
-`~/.projector/projector-config.toml`:
+`~/.config/projector/config.toml`:
 
 ```toml
 projects-dir = "/Users/alice/projects"
