@@ -53,7 +53,7 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-homebrew_casks:
+brews:
   - name: pj
     homepage: "https://github.com/kevdoran/projector"
     description: "Manage parallel projects backed by git worktrees"
@@ -62,4 +62,8 @@ homebrew_casks:
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     dependencies:
-      - formula: git
+      - name: git
+    install: |
+      bin.install "pj"
+    test: |
+      system "#{bin}/pj", "version"
