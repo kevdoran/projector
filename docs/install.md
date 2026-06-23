@@ -9,6 +9,11 @@ brew tap kevdoran/tap  # one-time command to add the kevdoran tap
 brew install pj
 ```
 
+The `pj` formula is a build-from-source formula: Homebrew downloads the source
+tarball for the release tag and compiles it with `go build` on your machine
+(`go` is pulled in automatically as a build dependency). The `brew tap
+kevdoran/tap` shorthand maps to the `kevdoran/homebrew-tap` repository.
+
 To upgrade to the latest version:
 
 ```bash
@@ -28,6 +33,10 @@ brew uninstall --cask kevdoran/tap/pj
 brew tap kevdoran/tap  # one-time command to add the kevdoran tap
 brew install kevdoran/tap/pj
 ```
+
+Once a `tap_migrations.json` mapping the old cask to the new formula is added to
+the `kevdoran/homebrew-tap` repo, this migration will happen automatically and
+you can simply run `brew upgrade pj`.
 
 ## Binary download
 

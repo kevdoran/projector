@@ -56,7 +56,11 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # GoReleaser no longer manages Homebrew (the `brews` formula key was
+          # removed in GoReleaser v2.16). The pj formula is hand-maintained in
+          # kevdoran/homebrew-tap, so HOMEBREW_TAP_TOKEN is no longer consumed
+          # here. The secret is retained in the repo settings for any future
+          # tap automation.
           MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
           MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
           MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
