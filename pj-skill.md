@@ -35,7 +35,7 @@ brew upgrade pj   # if installed via Homebrew
 
 - **Project**: a named directory (`<projects-dir>/<name>/`) containing one git worktree per repository
 - **Worktree**: a linked working tree from a git repository, checked out at a branch named after the project
-- **Projects directory**: configured at `~/.projector/projector-config.toml` (`projects-dir` key)
+- **Projects directory**: configured at `~/.config/projector/config.toml` (`projects-dir` key)
 
 ## Essential Commands
 
