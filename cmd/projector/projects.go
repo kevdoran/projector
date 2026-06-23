@@ -15,6 +15,7 @@ func newProjectsCmd() *cobra.Command {
 		newPathCmd(),
 		newAddRepoCmd(),
 		newArchiveCmd(),
+		newRepairCmd(),
 		newRestoreCmd(),
 		newDeleteCmd(),
 	)

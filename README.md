@@ -50,6 +50,7 @@ pj project open my-feature
 | `pj project path [project]` | Print the project directory path |
 | `pj project add-repo [repos...]` | Add repos to an existing project |
 | `pj project archive [project]` | Remove worktrees, keep branches |
+| `pj project repair [project]` | Repair worktrees after a project is moved or renamed |
 | `pj project restore [project]` | Recreate worktrees from an archived project |
 | `pj project delete [project]` | Permanently delete a project |
 | `pj config setup` | Interactive configuration wizard |

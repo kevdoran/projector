@@ -23,10 +23,10 @@ go test -v -race -count=1 ./internal/git/...
 
 | Package | Responsibility |
 |---|---|
-| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `open.go`, `path.go`, `addrepo.go`, `archive.go`, `restore.go`, `delete.go`, `version.go`, `config.go`, `config_run.go`, `config_list.go`, `config_get.go`, `config_set.go`, `config_unset.go`). No business logic — delegate to internal packages. |
+| `cmd/projector` | Cobra root + one file per subcommand (`projects.go`, `list.go`, `create.go`, `desc.go`, `open.go`, `path.go`, `addrepo.go`, `archive.go`, `repair.go`, `restore.go`, `delete.go`, `version.go`, `config.go`, `config_run.go`, `config_list.go`, `config_get.go`, `config_set.go`, `config_unset.go`). No business logic — delegate to internal packages. |
 | `internal/config` | `GlobalConfig` struct, `EditorConfig` struct, `Load`/`Save`/`ResolveBase`/`Validate`. TOML I/O for `~/.config/projector/config.toml` (honors `$XDG_CONFIG_HOME`); `Load` falls back to and copy-migrates the legacy `~/.projector/projector-config.toml`. |
 | `internal/project` | `ProjectConfig` struct, `Load`/`Save`/`ListAll`/`FindProjectDir`/`ValidateName`/`DiscoverWorktrees`. TOML I/O for `<projects-dir>/<name>/.projector.toml`. |
-| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeAddDetached`, `WorktreeRemove`, `WorktreeList`, `WorktreeForBranch`, `StatusPorcelain`, `RefExists`, `BranchExists`, `BranchCheckedOut`, `CurrentBranch`, `AvailableBranchName`, `BranchNameFromRef`, `Remotes`, `DefaultRemote`, `RemoteForRef`, `Fetch`, `FetchRef`, `HasUnpushedCommits`, `HeadSHA`, `MinVersionCheck`. |
+| `internal/git` | Thin wrappers around the `git` executable: `RunGit`, `WorktreeAdd`, `WorktreeAddDetached`, `WorktreeRemove`, `WorktreeRepair`, `WorktreeList`, `WorktreeForBranch`, `StatusPorcelain`, `RefExists`, `BranchExists`, `BranchCheckedOut`, `CurrentBranch`, `AvailableBranchName`, `BranchNameFromRef`, `Remotes`, `DefaultRemote`, `RemoteForRef`, `Fetch`, `FetchRef`, `HasUnpushedCommits`, `HeadSHA`, `MinVersionCheck`. |
 | `internal/repo` | `Repo` struct, `Discover` (non-recursive scan of search dirs), `ResolveRepos` (name or abs-path lookup). |
 | `internal/tui` | `SelectRepos` (huh multi-select), `SelectEditor` (huh single-select, installed editors only), `EditorOption` (with `Terminal` field), `ExpandHome` (tilde expansion). |
 
